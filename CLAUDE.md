@@ -10,7 +10,7 @@ This is a research repository focused on AI Agents papers, containing translated
 
 ```
 papers/
-├── Context Engineering/     # Context Engineering 2.0 research and translations
+├── Context Engineering/    # Context Engineering 2.0 research and translations
 ├── DeepSeek OCR/           # DeepSeek OCR paper translation
 ├── GraphRAG/               # Graph-Guided Retrieval-Augmented Generation papers
 ├── LLM Agents/             # LLM Agents survey papers and translations
