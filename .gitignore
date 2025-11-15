@@ -2,3 +2,8 @@
 
 # Source Papers(PDF)
 *.pdf
+
+# Claude Code
+.mcp.json
+.gitignore
+.vscode/settings.json
