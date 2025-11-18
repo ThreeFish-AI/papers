@@ -18,6 +18,7 @@
 ### 📚 精选论文翻译
 
 #### [Google Agent Quality 白皮书](./LLM%20Agents/Google/Agent%20Quality.md)
+
 **[原始 PDF](./LLM%20Agents/Google/Agent%20Quality.pdf) | [中文翻译](./LLM%20Agents/Google/Agent%20Quality.md)**
 
 Google 内部关于 AI 智能体质量评估的权威白皮书，提供了全面的智能体评估框架：
@@ -29,11 +30,13 @@ Google 内部关于 AI 智能体质量评估的权威白皮书，提供了全面
 - **🧑‍💻 Human-in-the-Loop (HITL)** 评估流程
 
 #### [Context Engineering 2.0](./Context%20Engineering/Context%20Engineering%202.0:%20The%20Context%20of%20Context%20Engineering.md)
+
 **[原始 PDF](./Context%20Engineering/Context%20Engineering%202.0:%20The%20Context%20of%20Context%20Engineering.pdf)**
 
 上下文工程的全面演进指南，从 1.0 到 4.0 时代的技术发展历程。
 
 #### [DeepSeek OCR 研究](./DeepSeek%20OCR/DeepSeek_OCR_paper_中文版.md.md)
+
 **[原始 PDF](./DeepSeek%20OCR/DeepSeek%20OCR:%20Contexts%20Optical%20Compression.pdf)**
 
 DeepSeek OCR 技术的详细分析，涵盖上下文光学压缩技术。
@@ -41,13 +44,16 @@ DeepSeek OCR 技术的详细分析，涵盖上下文光学压缩技术。
 ### 📊 专项研究主题
 
 #### GraphRAG 研究
+
 - [Knowledge Graphs 综述](./Knowledge%20Graphs/愫读.md)
 - [Graph-Guided Retrieval-Augmented Generation](./Knowledge%20Graphs/Graph-Guided%20Concept%20Selection%20For%20Efficient%20Retrieval-Augmented%20Generation.md)
 
 #### 强化学习智能体搜索
+
 - [基于强化学习的智能体搜索综合调研](./LLM%20Agents/A%20Comprehensive%20Survey%20on%20Reinforcement%20Learning-based%20Agentic%20Search.md)
 
 #### 多模态智能体
+
 - [LLaVA: Large Language and Vision Assistant](./LLM%20Agents/LLaVA.md)
 
 ## 🏗️ 仓库结构
@@ -73,13 +79,16 @@ papers/
 ## 🌟 特色功能
 
 ### 📝 高质量翻译标准
+
 - **逐字翻译**：保持原文技术准确性和完整性
 - **格式保留**：完整保留图表、公式、参考文献格式
 - **术语统一**：确保中文技术术语的一致性
 - **结构完整**：维护学术论文的原始结构
 
 ### 🔍 完整性验证
+
 每篇翻译都经过严格的完整性检查：
+
 - ✅ 对照原文 PDF 验证内容完整性
 - ✅ 确保章节、图表、公式无遗漏
 - ✅ 保持引用和参考文献格式规范
@@ -87,12 +96,15 @@ papers/
 ### 📖 使用指南
 
 #### 阅读论文
+
 1. 浏览 [`LLM Agents/`](./LLM%20Agents/) 目录查看智能体相关论文
 2. 查看 [`Context Engineering/`](./Context%20Engineering/) 了解上下文工程
 3. 访问 [`GraphRAG/`](./GraphRAG/) 研究图检索增强生成
 
 #### 贡献翻译
+
 遵循 [`AGENTS.md`](./AGENTS.md) 中的翻译指南：
+
 - 保持学术论文的专业性和准确性
 - 统一技术术语的中文翻译
 - 维护原文档的结构和格式
