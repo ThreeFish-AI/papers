@@ -1,50 +1,312 @@
 ---
 name: doc-translator
-description: 将 PDF 格式或 Web Page 格式的源文档转换成保持原排版格式的 Markdown 格式精译中文文档。
-allowed-tools: filesystem, data-extractor, zai-mcp-server, web-reader, web-search-prime, time
+description: Coordinate document translation workflow by orchestrating specialized skills for PDF/web extraction, formatting, and batch processing. Use when translating documents to Chinese Markdown format.
+allowed-tools: Skill, filesystem, time
 ---
 
-# Document Translator
+# Document Translator (Coordinator)
 
-按照下文 Workflow，使用相应的工具（data-extractor 可以读取 PDF 与 Web Page 两种类型文档的文本、图片、公式、表格）阅读源文档（PDF、Web Page 等）内容（文字、图片、公式、表格等），将文档内容以原排版格式全量转换为 Markdown 格式，并将其中的文字部分逐字精译成中文，然后将之保存到本地指定路径的「目标 Markdown 文档」中。
+文档翻译协调器，负责编排整个文档翻译流程，管理各个子技能的协作。
 
-## Workflow
+## 协调职责
 
-1. 根据源文档内容按段落长短制定多个批次（每个批次最多处理不超过 30 Pages，不过超过 60 个段落，不过超过 6000 Words）处理文档的任务计划，后续逐批次地对这些内容进行转换和精译处理；创建一个用于接收完整文档内容的「目标 Markdown 文档」；
-2. [循环]逐批次处理源文档的内容：
-   1. 检查所有批次是否处理完成。若是，退出处理循环；若否，创建一个用于接收下个批次处理结果的「批次 Markdown 文档」；
-   2. 使用 data-extractor 的 convert_pdf_to_markdown（单文档）或 batch_convert_pdfs_to_markdown（批文档）工具阅读 PDF 类型源文档的指定批次内容，并转换成目标 Markdown 格式；
-   3. 使用 data-extractor 的 convert_webpage_to_markdown（单文档）或 batch_convert_webpages_to_markdown（批文档）工具阅读 Web Page 类型源文档指定批次内容，并将之转换成目标 Markdown 格式；
-   4. 从 data-extractor 的 convert_xxx_to_markdown 或 batch_convert_xxxx_to_markdown 远程调用中接收 Markdown 格式的文本内容、图片、公式、表格等；
-   5. 将从 data-extractor 远程调用获取的图片资源文件保存到本地指定的图片存放路径；
-   6. 将从 data-extractor 远程调用获取的 Markdown 格式文本内容、公式、表格写入「批次 Markdown 文档」；
-   7. 检查并修正「批次 Markdown 文档」中图片、公式、表格的引用方式、引用位置、显示格式等；
-   8. 检查并修正「批次 Markdown 文档」中内容的整体布局（与源文档保持一致）；
-   9. 检查并修正「批次 Markdown 文档」转换与翻译的正确性，修复发现问题；
-   10. 将「批次 Markdown 文档」的内容追加到「目标 Markdown 文档」；
-   11. 移除当前批次的「批次 Markdown 文档」；
-3. 检查「目标 Markdown 文档」整体转换与翻译的正确性，修复发现问题；
+### 1. 流程编排
 
-## Special Note
+- 分析文档类型和大小
+- 选择合适的处理策略
+- 协调各子技能的执行顺序
+- 管理数据流转
 
-**文档对象**
+### 2. 资源管理
 
-- 「源文档」：要被转换或翻译的文档；
-- 「目标 Markdown 文档」：存放完整转换与翻译结果的文档。其存放路径是源文档所在路径下的 translate/ 路径（比如源文档路径是 `/path/to/source_docs/doc_A.pdf`，那么「目标 Markdown 文档」路径是 `/path/to/source_docs/translate/doc_A.md`）；
-- 「批次 Markdown 文档」：存放处理过程中某个批次转换与翻译结果的临时文档。其存放路径与「目标 Markdown 文档」一致（比如源文档路径是 `/path/to/source_docs/doc_A.pdf` 的第 3 批次对应的「批次 Markdown 文档」的路径是 `/path/to/source_docs/translate/doc_A_3.md`，其中后缀「3」代表批次号）；
+- 创建和管理输出目录
+- 协调图片资源存储
+- 管理临时文件
+- 清理工作环境
 
-**图片资源**
+### 3. 质量控制
 
-- 图片资源路径是「源文档」所在路径（注意不是项目所在路径，也不是 data-extractor 服务运行路径）下的 `images/doc_name/` 路径（比如「源文档」路径是 `/path/to/source_docs/doc_A.pdf`，那么图片资源存放在 `/path/to/source_docs/images/doc_A/` 路径下）；
-- 图片保存在本地的文件名称需参考源文档中图的说明，或基于对图片内容的理解，使用简短且有识别性的英文名称；
+- 监控各步骤执行状态
+- 验证输出质量
+- 处理错误和异常
+- 生成处理报告
 
-## Checklist
+## 核心工作流程
 
-1. 检查核对批次内容在源文档与目标文档中的内容一致性，如中英文内容是否对等，翻译得是否准确和完整；
-2. 检查核对批次内容在源文档与目标文档中的布局一致性，如目录结构是否一致，整体排版格式是否相同，图片、公式、表格等的引用位置是否一致，显示格式是否显示正确；
-3. 考虑 Markdown 格式语法与排版因素，如使用 Markdown 语法组织源文档中的表格内容，使用 LateX 语法组织源文档中的数学公式内容；
-4. 考虑单次能够处理的内容最大长度因素（建议最多每次处理 30 Pages，或者 6000 Words）；
-5. 可借助 zai-mcp-server 工具理解图片内容；
-6. 不要在其他路径创建路径或文件，临时的文件要及时清理；
+### 输入处理
 
-无论源文件多大，坚持处理完其中全部内容。
+1. **文档识别**
+
+   ```
+   输入: 文档路径或 URL
+   分析:
+   - 文档类型（PDF/Web）
+   - 文档大小（页数/字数）
+   - 处理复杂度
+   ```
+
+2. **策略选择**
+
+   ```
+   if 文档类型 == PDF:
+       使用 pdf-reader
+   elif 文档类型 == Web:
+       使用 web-translator
+
+   if 文档大小 > 阈值:
+       启用 batch-processor
+   else:
+       直接处理
+   ```
+
+### 处理流程
+
+#### 小文档直接处理
+
+```
+doc-translator
+    ├── 创建输出目录
+    ├── 调用 extractor (pdf-reader/web-translator)
+    ├── 调用 markdown-formatter
+    ├── 生成最终文档
+    └── 清理临时文件
+```
+
+#### 大文档批次处理
+
+```
+doc-translator
+    ├── 创建输出目录
+    ├── 调用 batch-processor
+    │   ├── 创建批次计划
+    │   ├── 循环处理每批:
+    │   │   ├── extractor
+    │   │   └── markdown-formatter
+    │   └── 合并批次结果
+    ├── 生成最终文档
+    └── 清理临时文件
+```
+
+## 目录结构管理
+
+### 输出目录规范
+
+```
+/path/to/source/
+├── translate/                   # 翻译输出目录
+│   ├── document.md              # 最终翻译文档
+│   ├── document_report.md       # 处理报告
+│   └── images/                  # 图片资源
+│       ├── document/            # 文档相关图片
+│       └── batch_N/             # 批次临时图片（处理后清理）
+└── temp/                        # 临时文件（处理后清理）
+    ├── batch_1.md
+    ├── batch_2.md
+    └── progress.json
+```
+
+### 文件命名规范
+
+- 最终文档：`{doc_name}.md`
+- 批次文件：`{doc_name}_batch_{N}.md`
+- 进度文件：`{doc_name}_progress.json`
+- 报告文件：`{doc_name}_report.md`
+
+## 使用方法
+
+### PDF 文档翻译
+
+```
+翻译这个 PDF 文档：/path/to/document.pdf
+```
+
+### 网页翻译
+
+```
+翻译这个网页：https://example.com/article
+```
+
+### 批量翻译
+
+```
+翻译这些文档：
+- /path/to/doc1.pdf
+- /path/to/doc2.pdf
+- https://example.com/article1
+```
+
+### 高级选项
+
+```
+翻译这个文档，保存到指定目录：/path/to/document.pdf --output /custom/path/
+```
+
+## 质量保证流程
+
+### 1. 预处理检查
+
+- [ ] 文件可访问性验证
+- [ ] 文档格式检查
+- [ ] 存储空间确认
+- [ ] 权限验证
+
+### 2. 处理中监控
+
+- [ ] 进度跟踪
+- [ ] 错误日志记录
+- [ ] 中间结果验证
+- [ ] 资源使用监控
+
+### 3. 后处理验证
+
+- [ ] 完整性检查
+- [ ] 格式验证
+- [ ] 图片引用检查
+- [ ] 链接有效性验证
+
+### 4. 质量报告
+
+生成详细的质量报告：
+
+```markdown
+# 文档翻译报告
+
+## 基本信息
+
+- 源文档：document.pdf
+- 输出文档：document.md
+- 处理时间：2025-12-10 20:00:00
+- 总耗时：15 分钟
+
+## 处理统计
+
+- 总页数：150
+- 批次数量：5
+- 提取图片：23 张
+- 提取表格：8 个
+- 提取公式：15 个
+
+## 质量检查
+
+- [x] 内容完整性
+- [x] 格式正确性
+- [x] 图片引用
+- [x] 链接有效
+
+## 问题记录
+
+1. 第 75 页图片路径错误 - 已标记
+2. 第 120 页表格转换 Error - 已手动修正
+```
+
+## 错误处理策略
+
+### 1. 子技能失败处理
+
+- pdf-reader 失败 → 尝试备用提取方案
+- web-translator 失败 → 使用 web-reader 作为后备
+- markdown-formatter 失败 → 跳过格式化，使用原始内容
+- batch-processor 失败 → 切换到单批次处理模式
+
+### 2. 部分失败处理
+
+- 记录失败的具体内容
+- 继续处理剩余部分
+- 在最终报告中标注问题
+- 提供手动修复建议
+
+### 3. 恢复机制
+
+- 支持从失败点恢复
+- 保存中间状态
+- 避免重复处理已完成部分
+
+## 性能优化
+
+### 1. 智能批次划分
+
+- 根据文档特征动态调整批次大小
+- 在章节边界划分批次
+- 考虑图片和表格分布
+
+### 2. 并行处理
+
+- 独立文档并行处理
+- 批次间流水线处理
+- 资源使用优化
+
+### 3. 缓存机制
+
+- 缓存已处理的内容
+- 避免重复处理
+- 支持增量更新
+
+## 监控和日志
+
+### 处理日志格式
+
+```json
+{
+  "timestamp": "2025-12-10T20:00:00Z",
+  "document": "document.pdf",
+  "stage": "extraction",
+  "batch_id": 3,
+  "status": "processing",
+  "message": "正在处理第 61-90 页",
+  "progress": 60
+}
+```
+
+### 性能指标
+
+- 处理速度（页/分钟）
+- 内存使用峰值
+- 临时文件大小
+- 错误率统计
+
+## 与其他技能的集成
+
+### 调用方式
+
+通过 `Skill` 工具调用子技能：
+
+```python
+# 调用 PDF 提取
+result = await Skill("pdf-reader", {
+    "file_path": "/path/to/document.pdf",
+    "options": {"extract_images": True}
+})
+
+# 调用格式化
+formatted = await Skill("markdown-formatter", {
+    "content": result["content"],
+    "check_images": True
+})
+```
+
+### 数据传递
+
+- 使用结构化数据格式
+- 包含元数据和统计信息
+- 支持部分结果传递
+- 错误信息传播
+
+## 最佳实践
+
+### 1. 文档组织
+
+- 保持源文档和输出文档的目录结构一致
+- 使用清晰的命名规范
+- 保留处理历史
+
+### 2. 错误预防
+
+- 预先检查所有前置条件
+- 提供清晰的错误消息
+- 记录详细的调试信息
+
+### 3. 用户体验
+
+- 提供进度反馈
+- 支持中断和恢复
+- 生成易于理解的处理报告
