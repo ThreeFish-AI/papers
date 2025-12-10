@@ -6,12 +6,12 @@ allowed-tools: Read, Grep, Glob, filesystem, data-extractor, zai-mcp-server, web
 
 # Document Translator
 
-将 PDF 格式或 Web Page 格式的源文档转换成保持原排版格式的 Markdown 格式文档；若源文档是英文，将之逐字精译成中文；最后将 Markdown 文档保存到本地的指定路径。
+将 PDF 格式或 Web Page 格式的源文档转换成保持原排版格式的 Markdown 格式文档。若源文档是英文，将之逐字精译成中文。将 Markdown 文档保存到本地的指定路径。
 
 ## Instructions
 
 1. 将源文档内容按段落长短分成多个批次，用于后续的精译处理；每个批次最多处理不超过 5 Pages，不过超过 15 个段落，不过超过 10000 Words；
-2. 逐批处理：
+2. 逐批循环处理：
    2.1. 使用 data-extractor 的 convert_pdf_to_markdown（单文档）或 batch_convert_pdfs_to_markdown（批文档）工具阅读 PDF 类型源文档的指定批次内容，并转换成目标 Markdown 格式；
    2.2. 使用 data-extractor 的 convert_webpage_to_markdown（单文档）或 batch_convert_webpages_to_markdown（批文档）工具阅读 Web Page 类型源文档指定批次内容，并将之转换成目标 Markdown 格式；
    2.3. 从 data-extractor 的 convert_xxx_to_markdown 或 batch_convert_xxxx_to_markdown 远程调用中接收 Markdown 格式的文本内容、图片、公式、表格等；
