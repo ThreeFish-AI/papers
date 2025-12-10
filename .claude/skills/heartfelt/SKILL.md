@@ -1,10 +1,22 @@
 ---
-name: code-reviewer
-description: Review code for best practices and potential issues. Use when reviewing code, checking PRs, or analyzing code quality.
-allowed-tools: Read, Grep, Glob
+name: heartfelt
+description: 仔细阅读并理解目标文档全文，输出一个对目标文档的理解摘要和读后感悟，将之保存到愫读文档中。
+allowed-tools: Read, Grep, Glob, filesystem, zai-mcp-server, web-reader, web-search-prime, time
 ---
 
-# Code Reviewer
+# 愫读
+
+**分章节**仔细阅读并深入理解每个章节的内容，以概括的方式提取每个章节的关键内容（可分主次要的内容），将每个章节概要依次输出到「愫读 - #$ARGUMENTS.md」，最终完成整篇文档内容的摘要。
+**分章节**仔细阅读并深入理解每个章节的内容，仔细揣摩对每个章节关键内容的理解，并将之依次输出到「愫读 - #$ARGUMENTS.md」文档适当的位置，最终完成整篇文档关键内容的理解记录。
+通过对全文关键内容的理解，仔细思考读后的感悟与所得，并将之输出到「愫读 - #$ARGUMENTS.md」文档适当位置。
+仔细揣摩每个章节，不要丢失了任何章节的关键内容。
+
+## Instructions
+
+1. Read the target files using Read tool
+2. Search for patterns using Grep
+3. Find related files using Glob
+4. Provide detailed feedback on code quality
 
 ## Review checklist
 
@@ -14,23 +26,7 @@ allowed-tools: Read, Grep, Glob
 4. Security concerns
 5. Test coverage
 
-## Instructions
-
-1. Read the target files using Read tool
-2. Search for patterns using Grep
-3. Find related files using Glob
-4. Provide detailed feedback on code quality
-
 ---
-
-## 愫读摘要
-
-仔细阅读「#$ARGUMENTS.md」全文，输出整个文档「内容的概要（摘要）」、「对文档的理解」、「读后的感悟与所得」到「愫读 - #$ARGUMENTS.md」。
-
-**分章节**仔细阅读并深入理解每个章节的内容，以概括的方式提取每个章节的关键内容（可分主次要的内容），将每个章节概要依次输出到「愫读 - #$ARGUMENTS.md」，最终完成整篇文档内容的摘要。
-**分章节**仔细阅读并深入理解每个章节的内容，仔细揣摩对每个章节关键内容的理解，并将之依次输出到「愫读 - #$ARGUMENTS.md」文档适当的位置，最终完成整篇文档关键内容的理解记录。
-通过对全文关键内容的理解，仔细思考读后的感悟与所得，并将之输出到「愫读 - #$ARGUMENTS.md」文档适当位置。
-仔细揣摩每个章节，不要丢失了任何章节的关键内容。
 
 **特别注意**：
 
