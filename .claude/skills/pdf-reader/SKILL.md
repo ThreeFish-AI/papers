@@ -48,11 +48,12 @@ allowed-tools: data-extractor, zai-mcp-server, filesystem
 - 保持每个文档的独立性
 - 统一的输出格式
 
-### 页面范围处理
+### 页面范围处理（批次支持）
 
 - 指定页面范围：`[start, end]`
 - 支持非连续页面处理
 - 用于预览或选择性提取
+- 批次处理时指定具体页面段
 
 ## 图片处理流程
 
@@ -165,6 +166,21 @@ $$
 
 ```
 提取 PDF 内容，需要包含所有图片和表格，但不提取公式：/path/to/document.pdf
+```
+
+### 指定页面范围（批次处理）
+
+```
+提取 PDF 的第 10-20 页（用于批次处理）：/path/to/document.pdf --range 10-20
+```
+
+### 批量处理（多批次）
+
+```
+批量处理这些 PDF，每个文档独立处理：
+- /path/to/doc1.pdf
+- /path/to/doc2.pdf
+- /path/to/doc3.pdf
 ```
 
 ## 特殊处理

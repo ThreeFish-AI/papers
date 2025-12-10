@@ -1,12 +1,12 @@
 ---
 name: batch-processor
-description: Manage large document processing by splitting into batches and tracking progress. Use when handling documents larger than 30 pages, 60 paragraphs, or 6000 words.
-allowed-tools: filesystem, time
+description: Manage large document processing by splitting into batches and coordinating the full translation workflow (extraction, translation, formatting). Use when handling documents larger than 30 pages, 60 paragraphs, or 6000 words.
+allowed-tools: Skill, filesystem, time
 ---
 
 # Batch Processor
 
-专门管理大文档的批次处理，确保在处理大型文档时的效率和稳定性。
+专门管理大文档的批次处理，协调完整的翻译工作流程（提取、翻译、格式化），确保在处理大型文档时的效率和稳定性。
 
 ## 批次规则
 
@@ -66,6 +66,23 @@ allowed-tools: filesystem, time
 3. 跟踪处理进度
 4. 保存中间结果
 5. 错误处理和重试
+
+#### 批次内处理流程
+
+```
+FOR EACH batch:
+    1. 内容提取
+       - PDF: 调用 pdf-reader
+       - Web: 调用 web-translator
+    2. 内容翻译
+       - 调用 zh-translator
+    3. 格式优化
+       - 调用 markdown-formatter
+    4. 质量检查
+       - 验证输出质量
+    5. 保存批次结果
+END FOR
+```
 
 ### 4. 结果合并
 
@@ -203,7 +220,7 @@ allowed-tools: filesystem, time
    - 批次 5: 页 121-150
 3. 执行处理：
    - 依次处理每个批次
-   - 每批次调用 pdf-reader → markdown-formatter
+   - 每批次调用 pdf-reader → zh-translator → markdown-formatter
    - 保存中间结果
 4. 合并结果：
    - 组合所有批次
@@ -211,10 +228,47 @@ allowed-tools: filesystem, time
    - 清理临时文件
 ```
 
+### 翻译工作流协调
+
+```python
+# 处理单个批次的完整流程
+async def process_batch(batch_info):
+    # 1. 提取内容
+    if document_type == 'pdf':
+        extracted = await Skill("pdf-reader", {
+            "file_path": file_path,
+            "page_range": batch_info["range"]
+        })
+    else:
+        extracted = await Skill("web-translator", {
+            "url": document_url
+        })
+
+    # 2. 翻译内容
+    translated = await Skill("zh-translator", {
+        "content": extracted["content"]
+    })
+
+    # 3. 格式化
+    formatted = await Skill("markdown-formatter", {
+        "content": translated["translated_content"],
+        "post_translation": True
+    })
+
+    # 4. 返回结果
+    return {
+        "batch_id": batch_info["id"],
+        "content": formatted["formatted_content"],
+        "status": "completed"
+    }
+```
+
 ## 注意事项
 
-1. **存储空间**: 确保有足够空间存储临时文件
-2. **处理时间**: 大文档处理可能需要较长时间
-3. **中断恢复**: 支持处理中断后的恢复
+1. **存储空间**: 确保有足够空间存储临时文件和图片资源
+2. **处理时间**: 大文档翻译处理可能需要较长时间
+3. **中断恢复**: 支持处理中断后的恢复，保存详细进度
 4. **质量检查**: 每个批次处理完成后进行质量验证
 5. **日志记录**: 详细记录处理过程，便于调试
+6. **翻译一致性**: 确保批次间术语翻译的一致性
+7. **内存管理**: 及时清理已处理的批次，避免内存溢出
