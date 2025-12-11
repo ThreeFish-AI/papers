@@ -79,10 +79,10 @@ gpu = [
 agentic-papers = "agentic_ai_papers.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/agentic-ai-papers"
-Repository = "https://github.com/yourusername/agentic-ai-papers.git"
+Homepage = "https://threefish.site"
+Repository = "https://github.com/ThreeFish-AI/agentic-ai-papers.git"
 Documentation = "https://agentic-ai-papers.readthedocs.io"
-Issues = "https://github.com/yourusername/agentic-ai-papers/issues"
+Issues = "https://github.com/ThreeFish-AI/agentic-ai-papers/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
