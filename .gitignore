@@ -7,3 +7,16 @@
 .mcp.json
 .gitignore
 .vscode/settings.json
+
+# uv
+__pycache__/
+*.pyc
+env/
+venv/
+.env
+.env.*
+.ipynb_checkpoints
+*.egg-info/
+dist/
+build/
+.pytest_cache/
