@@ -16,17 +16,45 @@
 ```bash
 agentic-ai-papers/
 ├── agents/             # AI 代理实现
-│   ├── claude/         # 基于 Claude Agent SDK 的代理
-│   └── adk/            # 基于 Google ADK 的代理
-├── ui/                 # 基于 React 的 Web 管理界面
-├── papers/             # 论文存储
-│   ├── source/         # 原始文档本地存储 (PDF/Web Page)
-│   ├── images/         # 原始文档中抓取的图片（供 Markdown 文档引用）
-│   ├── translation/    # 中文翻译 (Markdown)
-│   └── heartfelt/      # 愫读摘要与心得体会 (Markdown)
-├── docs/               # 工程文档
-├── .claude/            # Claude 配置和提示
-└── skills/             # Claude Agent Skills
+│   └── claude/         # 基于 Claude Agent SDK 的代理
+│       ├── __init__.py
+│       ├── base.py           # Agent 基类
+│       ├── workflow_agent.py # 工作流协调器
+│       ├── pdf_agent.py      # PDF 处理代理
+│       ├── translation_agent.py # 翻译代理
+│       ├── heartfelt_agent.py # 深度分析代理
+│       └── batch_agent.py    # 批处理代理
+├── api/                # FastAPI 服务层
+│   ├── main.py        # 应用入口
+│   ├── routes/        # API 路由
+│   │   ├── papers.py  # 论文管理接口
+│   │   ├── tasks.py   # 任务管理接口
+│   │   └── websocket.py # WebSocket 接口
+│   ├── services/      # 业务逻辑层
+│   │   ├── paper_service.py # 论文处理服务
+│   │   ├── task_service.py  # 任务管理服务
+│   │   └── websocket_service.py # WebSocket 服务
+│   └── models/        # 数据模型
+│       ├── paper.py   # 论文相关模型
+│       └── task.py    # 任务相关模型
+├── core/              # 核心配置和工具
+│   ├── config.py      # 应用配置
+│   ├── exceptions.py  # 异常定义
+│   └── utils.py       # 工具函数
+├── ui/                # Web UI（可选）
+│   ├── index.html     # 主页面
+│   └── nginx.conf     # Nginx 配置
+├── papers/            # 论文存储
+│   ├── source/        # 原始文档 (PDF)
+│   ├── images/        # 提取的图片
+│   ├── translation/   # 中文翻译 (Markdown)
+│   └── heartfelt/     # 深度分析 (Markdown)
+├── .claude/           # Claude 配置和 Skills
+│   └── skills/        # Claude Skills (7个)
+├── logs/              # 日志文件
+├── docker-compose.yml # 容器编排配置
+├── Dockerfile         # 容器镜像配置
+└── pyproject.toml     # 项目依赖配置
 ```
 
 ## 🎯 核心功能
@@ -73,10 +101,25 @@ agentic-ai-papers/
    - 15+ 篇已完成中文翻译
    - 清晰的目录结构 (source/, translation/, heartfelt/, images/)
 
-#### ❌ 需要优化的部分
+#### ✅ 最新实现状态 (v1.0.0)
 
-1. **过度设计的全栈基础设施**: PostgreSQL, Redis, MinIO, Celery 等重型组件
-2. **空目录结构**: UI 工作空间未实现，agent 目录仅有 README
+1. **完整的混合架构实现**:
+   - Claude Agent SDK 标准化 Agent 层
+   - FastAPI 异步 API 服务层
+   - 保留现有 Claude Skills 生态
+   - 精简部署配置
+
+2. **已实现的核心组件**:
+   - BaseAgent 基类和 5 个专用 Agent
+   - 完整的 RESTful API 接口
+   - WebSocket 实时通信
+   - 任务管理和进度追踪
+   - Docker 容器化部署
+
+3. **优化的部署方案**:
+   - 单一 API 服务 + 可选 UI
+   - 移除重型依赖 (PostgreSQL, Redis, MinIO)
+   - 本地开发优先设计
 
 ### 🎯 精简实施策略
 
@@ -223,7 +266,7 @@ _完整实施计划详见: [工程实施计划详细方案](.claude/plans/joyful
 
 ### 环境要求
 
-- Python 3.11+
+- Python 3.12+
 - Docker & Docker Compose (可选，用于容器化部署)
 - Claude API Key
 
@@ -232,35 +275,46 @@ _完整实施计划详见: [工程实施计划详细方案](.claude/plans/joyful
 1. **克隆仓库**
 
 ```bash
-git clone https://github.com/yourusername/agentic-ai-papers.git
+git clone https://github.com/ThreeFish-AI/agentic-ai-papers.git
 cd agentic-ai-papers
 ```
 
-2. **安装依赖**
+2. **配置环境变量**
 
 ```bash
-# 安装 Python 依赖
-pip install -e .
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑 .env 文件，添加必要的配置
+# 必须设置 ANTHROPIC_API_KEY
 ```
 
-3. **配置环境变量**
+3. **使用 Docker Compose 部署（推荐）**
 
 ```bash
-# 创建 .env 文件
-echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
-```
-
-4. **启动服务**
-
-```bash
-# 使用 Docker Compose (推荐)
+# 启动 API 服务
 docker-compose up -d
 
-# 或手动启动 API 服务
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
-
-# 启动可选的 Web UI
+# 启动 Web UI（可选）
 docker-compose --profile ui up -d
+
+# 启动 MCP 服务（可选）
+docker-compose --profile mcp up -d
+```
+
+4. **本地开发安装**
+
+```bash
+# 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或 venv\Scripts\activate  # Windows
+
+# 安装依赖
+pip install -e .
+
+# 启动 API 服务
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## 📖 使用指南
