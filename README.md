@@ -83,22 +83,79 @@ agentic-ai-papers/
 **核心理念**: 利用现有的 Claude Skills 生态，构建轻量级管理界面，避免过度工程化。
 
 ```mermaid
-flowchart LR
-    A[Web界面<br/>单页面应用] --> B[Flask API<br/>轻量级后端]
-    B --> C[论文管理器]
-    B --> D[Claude CLI集成]
-    D --> E[Claude Skills生态]
-    C --> F[文件系统<br/>papers目录]
+flowchart TD
+    %% 用户交互层
+    A[Web界面<br/>可选的静态页面] --> B[FastAPI 服务<br/>异步 API 服务]
 
+    %% API路由层
+    B --> C[论文路由<br/>/api/papers]
+    B --> D[任务路由<br/>/api/tasks]
+
+    %% 服务层
+    C --> E[论文服务<br/>PaperService]
+    D --> F[任务服务<br/>TaskService]
+
+    %% Agent层
+    E --> G[WorkflowAgent<br/>工作流协调]
+    F --> G
+    E --> H[PDFProcessingAgent<br/>PDF处理]
+    E --> I[TranslationAgent<br/>翻译]
+    E --> J[BatchProcessingAgent<br/>批处理]
+    E --> K[HeartfeltAgent<br/>深度分析]
+
+    %% Skills封装层
+    subgraph Skills [Claude Skills - MCP工具]
+        S1[pdf-reader<br/>内容提取]
+        S2[zh-translator<br/>中文翻译]
+        S3[markdown-formatter<br/>格式优化]
+        S4[doc-translator<br/>工作流协调]
+        S5[batch-processor<br/>批量处理]
+        S6[heartfelt<br/>深度解读]
+    end
+
+    G --> S4
+    H --> S1
+    I --> S2
+    J --> S5
+    K --> S6
+
+    %% 存储层
+    subgraph Storage [文件系统存储]
+        F1[source/<br/>原始文档]
+        F2[translation/<br/>翻译文档]
+        F3[heartfelt/<br/>深度摘要]
+        F4[images/<br/>提取图片]
+        F5[logs/<br/>处理日志]
+    end
+
+    E --> Storage
+    F --> F5
+
+    %% MCP服务层
+    subgraph MCP [MCP服务器]
+        M1[data-extractor<br/>PDF/Web提取]
+        M2[filesystem<br/>文件操作]
+        M3[time<br/>时间服务]
+    end
+
+    Skills --> MCP
+
+    %% 样式
     classDef ui fill:#4CAF50,stroke:#388E3C,color:#fff
     classDef api fill:#2196F3,stroke:#1976D2,color:#fff
+    classDef service fill:#00BCD4,stroke:#0097A7,color:#fff
+    classDef agent fill:#9C27B0,stroke:#7B1FA2,color:#fff
+    classDef skills fill:#673AB7,stroke:#512DA8,color:#fff
     classDef storage fill:#FF9800,stroke:#F57C00,color:#fff
-    classDef skills fill:#9C27B0,stroke:#7B1FA2,color:#fff
+    classDef mcp fill:#795548,stroke:#5D4037,color:#fff
 
     class A ui
     class B,C,D api
-    class F storage
-    class E skills
+    class E,F service
+    class G,H,I,J,K agent
+    class S1,S2,S3,S4,S5,S6 skills
+    class F1,F2,F3,F4,F5 storage
+    class M1,M2,M3 mcp
 ```
 
 ### 🚀 基于 Claude Agent SDK 的实施阶段
@@ -166,10 +223,9 @@ _完整实施计划详见: [工程实施计划详细方案](.claude/plans/joyful
 
 ### 环境要求
 
-- Python 3.12+
-- Node.js 24+
-- PostgreSQL 16+
-- Redis 6+
+- Python 3.11+
+- Docker & Docker Compose (可选，用于容器化部署)
+- Claude API Key
 
 ### 安装步骤
 
@@ -180,55 +236,65 @@ git clone https://github.com/yourusername/agentic-ai-papers.git
 cd agentic-ai-papers
 ```
 
-2. **安装 Agent 环境**
+2. **安装依赖**
 
 ```bash
-# Claude Agents
-pip install claude-agent-sdk
-
-# Google ADK Agents
-pip install google-adk
+# 安装 Python 依赖
+pip install -e .
 ```
 
-3. **安装 UI 环境**
+3. **配置环境变量**
 
 ```bash
-cd ui
-npm run install:all
+# 创建 .env 文件
+echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 ```
 
-4. **配置环境变量**
-
-```bash
-cp .env.example .env
-# 编辑 .env 文件
-```
-
-5. **启动服务**
+4. **启动服务**
 
 ```bash
 # 使用 Docker Compose (推荐)
 docker-compose up -d
 
-# 或手动启动
-npm run dev
+# 或手动启动 API 服务
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# 启动可选的 Web UI
+docker-compose --profile ui up -d
 ```
 
 ## 📖 使用指南
 
 ### 添加新论文
 
-1. 将 PDF 或网页链接添加到 `papers/source/` 对应分类目录
-2. 使用 Agent 进行内容提取：`python agents/claude/extract.py`
-3. 运行翻译：`python agents/claude/translate.py`
-4. 生成深度解读：`python agents/claude/analyze.py`
+#### 方式一：使用 API
 
-### 使用 Web UI
+```bash
+# 上传论文
+curl -X POST "http://localhost:8000/api/papers/upload" \
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@paper.pdf"
 
-1. 访问 `http://localhost:3000`
-2. 上传论文或输入 URL
-3. 监控处理进度
-4. 查看和管理翻译结果
+# 触发翻译
+curl -X POST "http://localhost:8000/api/papers/{paper_id}/translate"
+
+# 查询任务状态
+curl "http://localhost:8000/api/tasks/{task_id}"
+```
+
+#### 方式二：使用 Web UI
+
+1. 访问 `http://localhost:3000`（如启用 UI 服务）
+2. 上传 PDF 文件
+3. 选择处理流程（翻译、批处理、深度分析等）
+4. 查看实时处理进度和结果
+
+#### 方式三：直接使用文件系统
+
+1. 将 PDF 文件放入 `papers/source/` 对应分类目录
+2. 文件监控 Agent 会自动检测并处理
+3. 处理结果保存至对应目录（translation/, heartfelt/）
 
 ## 🌟 研究领域
 
