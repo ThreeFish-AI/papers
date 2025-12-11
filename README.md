@@ -1,43 +1,168 @@
-# Agentic AI Papers Collection 🔬
+# Agentic AI Papers Collection & Translation Platform 🔬
 
-这是一个专注于 Agentic AI 研究的学术论文收集仓库，收集和翻译了人工智能智能体领域的重要研究论文，同时提供了辅助阅读这些论文的 Agents 和平台，为中文读者提供高质量的技术资源。
+这是一个专注于 Agentic AI 研究的学术论文收集、翻译和管理平台，致力于为中文读者提供高质量的人工智能智能体领域技术资源。
 
 ## 📋 项目概览
 
-## 📖 使用指南
-
-## 🎯 核心资源
+本平台提供：
+- 📚 **论文收集**: 系统性收集 Agentic AI 领域重要研究论文
+- 🔄 **智能翻译**: 基于 AI 的高质量中英文翻译
+- 🤖 **Agent 工具**: 专门用于处理学术论文的智能代理
+- 🖥️ **管理界面**: Web UI 用于管理论文和翻译流程
 
 ## 🏗️ 仓库结构
 
-## 🌟 特色功能
+```
+agentic-ai-papers/
+├── agents/              # AI 代理实现
+│   ├── claude/         # 基于 Claude Agent SDK 的代理
+│   └── adk/            # 基于 Google ADK 的代理
+├── ui/                 # Web 管理界面
+│   ├── frontend/       # React 前端
+│   └── backend/        # FastAPI 后端
+├── papers/             # 论文存储
+│   ├── source/         # 原始论文 (PDF/Web)
+│   ├── translation/    # 中文翻译 (Markdown)
+│   └── heartfelt/      # 深度解读 (Markdown)
+├── .claude/            # Claude 配置和提示
+└── skills/             # 辅助技能模块
+```
+
+## 🎯 核心功能
+
+### 1. 智能论文处理
+- PDF 解析和内容提取
+- 数学公式和表格识别
+- 图像和图表提取
+- 自动分类和标签
+
+### 2. 高质量翻译
+- 保持技术术语准确性
+- 保留数学公式格式
+- 适应中文表达习惯
+- 翻译质量评估
+
+### 3. 深度解读
+- 核心贡献总结
+- 技术要点分析
+- 相关研究对比
+- 实践应用建议
+
+## 🚀 快速开始
+
+### 环境要求
+- Python 3.9+
+- Node.js 18+
+- PostgreSQL 14+
+- Redis 6+
+
+### 安装步骤
+
+1. **克隆仓库**
+```bash
+git clone https://github.com/yourusername/agentic-ai-papers.git
+cd agentic-ai-papers
+```
+
+2. **安装 Agent 环境**
+```bash
+# Claude Agents
+pip install claude-agent-sdk
+
+# Google ADK Agents
+pip install google-adk
+```
+
+3. **安装 UI 环境**
+```bash
+cd ui
+npm run install:all
+```
+
+4. **配置环境变量**
+```bash
+cp .env.example .env
+# 编辑 .env 文件
+```
+
+5. **启动服务**
+```bash
+# 使用 Docker Compose (推荐)
+docker-compose up -d
+
+# 或手动启动
+npm run dev
+```
+
+## 📖 使用指南
+
+### 添加新论文
+1. 将 PDF 或网页链接添加到 `papers/source/` 对应分类目录
+2. 使用 Agent 进行内容提取：`python agents/claude/extract.py`
+3. 运行翻译：`python agents/claude/translate.py`
+4. 生成深度解读：`python agents/claude/analyze.py`
+
+### 使用 Web UI
+1. 访问 `http://localhost:3000`
+2. 上传论文或输入 URL
+3. 监控处理进度
+4. 查看和管理翻译结果
+
+## 🌟 研究领域
+
+### LLM Agents
+- Agent 架构设计
+- Tool 使用和学习
+- 多 Agent 协作
+- 规划和推理
+
+### Context Engineering
+- 上下文管理策略
+- 提示工程技术
+- 记忆机制设计
+- 会话状态维护
+
+### Knowledge Graphs
+- 知识表示方法
+- 图神经网络
+- 知识增强生成
+- 推理和查询
+
+### Multi-Agent Systems
+- 协作机制
+- 通信协议
+- 任务分配
+- 涌现行为
 
 ## 🤝 贡献方式
 
 我们欢迎社区贡献！您可以：
 
-- 📝 **提交有质量的新论文**
-- 🔄 **改进现有翻译质量**
-- 📚 **推荐重要研究方向**
-- 🐛 **报告翻译错误或遗漏**
+- 📝 **提交新论文**: 添加重要的 Agentic AI 研究论文
+- 🔄 **改进翻译**: 提升翻译质量和准确性
+- 🛠️ **开发 Agent**: 贡献新的处理能力
+- 🐛 **报告问题**: 帮助改进平台功能
+- 📚 **完善文档**: 改进使用指南和说明
+
+## 📊 项目统计
+
+- 📄 **论文总数**: 20+ 篇
+- 🌐 **翻译完成**: 15+ 篇
+- 📂 **研究领域**: 6 个主要方向
+- 🤖 **Agent 数量**: 10+ 个专用代理
+- 🔄 **持续更新**: 每周添加新内容
 
 ## 📜 许可证
 
-本仓库遵循开源许可证，所有翻译内容仅供学术研究使用。原始论文的版权属于相应的出版机构和作者。
+本项目采用 [MIT License](LICENSE)，所有翻译内容仅供学术研究使用。原始论文的版权属于相应的出版机构和作者。
 
 ## 🔗 相关链接
 
-- [微软 GraphRAG 框架源码解读](https://www.cnblogs.com/fanzhidongyzby/p/18294348/ms-graphrag)
-- [Tongyi DeepResearch](https://mp.weixin.qq.com/s/SbPF7zAulPok2Xz3wU2ncw)
-- [Claude Code](https://claude.ai/code) - 本项目使用的 AI 辅助开发工具
-
-## 📊 统计信息
-
-- 📄 **论文总数**: 15+ 篇
-- 🌐 **翻译完成**: 12+ 篇
-- 📂 **研究领域**: 6 个主要方向
-- 🔄 **持续更新**: 定期添加新的研究内容
+- [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk)
+- [Google Agent Development Kit](https://developers.google.com/agent-kit)
+- [Agentic AI Survey](https://arxiv.org/abs/2401.01268)
+- [Agent Project](https://agent.supply/) - 中文 Agent 项目聚合
 
 ---
 
-**注意**: 本仓库的内容仅供学术研究和教育目的使用。在使用翻译内容时，请引用原始论文的完整来源信息。
+**注意**: 本项目的内容仅供学术研究和教育目的使用。在使用翻译内容时，请引用原始论文的完整来源信息。
