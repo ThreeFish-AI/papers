@@ -12,6 +12,7 @@ This is a research repository focused on AI Agents papers, containing translated
 - 语义连续性：保持篇幅整体意义连贯与自洽；
 - 内容充分理解：对内容的任何操作都是以对内容充分阅读并深入理解为前提，而不是通过字符的模式匹配方式进行机械操作；
 - 优先使用 Mermaid 作图说明：能用「图 + 文」进行清晰描述的内容，尽量使用 Mermaid 作图来加以说明；
+- 如非显性要求，不要调用 git commit 进行变更提交；
 
 ## Mermaid 作图注意事项
 
