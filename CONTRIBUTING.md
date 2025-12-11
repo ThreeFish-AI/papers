@@ -6,7 +6,7 @@ Thank you for your interest in contributing to our platform! This document provi
 
 ### Reporting Issues
 
-- Use the [GitHub Issues](https://github.com/yourusername/agentic-ai-papers/issues) page
+- Use the [GitHub Issues](https://github.com/ThreeFish-AI/agentic-ai-papers/issues) page
 - Provide clear descriptions of the issue
 - Include steps to reproduce if it's a bug
 - Add relevant screenshots or logs
@@ -21,6 +21,7 @@ Thank you for your interest in contributing to our platform! This document provi
 ### Contributing Papers
 
 1. **Paper Selection Criteria**
+
    - Papers must be about Agentic AI or related fields
    - Prefer recent papers (last 2-3 years)
    - Include seminal/classic papers
@@ -45,12 +46,14 @@ Thank you for your interest in contributing to our platform! This document provi
 ### Translating Papers
 
 1. **Quality Guidelines**
+
    - Maintain technical accuracy
    - Use consistent terminology
    - Preserve mathematical formulas
    - Add translator notes for ambiguous terms
 
 2. **Translation Process**
+
    - Use our translation agents for initial draft
    - Review and edit for accuracy
    - Ensure cultural adaptation where needed
@@ -65,12 +68,14 @@ Thank you for your interest in contributing to our platform! This document provi
 ### Developing Agents
 
 1. **Agent Categories**
+
    - **Extraction Agents**: Convert papers to Markdown
    - **Translation Agents**: Translate content
    - **Analysis Agents**: Extract insights and summaries
    - **Classification Agents**: Categorize papers
 
 2. **Development Guidelines**
+
    - Follow existing code patterns
    - Include comprehensive tests
    - Add error handling
@@ -87,7 +92,7 @@ Thank you for your interest in contributing to our platform! This document provi
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/yourusername/agentic-ai-papers.git
+   git clone https://github.com/ThreeFish-AI/agentic-ai-papers.git
    cd agentic-ai-papers
    ```
 3. Create a virtual environment:
@@ -118,6 +123,7 @@ We use the following tools to maintain code quality:
 - **pre-commit**: To run checks before commits
 
 Run all checks:
+
 ```bash
 black . && ruff . && mypy agentic_ai_papers
 ```
@@ -125,12 +131,14 @@ black . && ruff . && mypy agentic_ai_papers
 ## 📋 Pull Request Process
 
 1. **Before Submitting**
+
    - Run all tests: `pytest`
    - Check code style: `black . && ruff .`
    - Update documentation if needed
    - Add tests for new functionality
 
 2. **PR Requirements**
+
    - Clear title and description
    - Reference related issues
    - Include screenshots for UI changes
@@ -158,12 +166,14 @@ We use GitHub labels to track contributions:
 ## 📚 Resources
 
 ### Useful Links
+
 - [Claude Agent SDK Documentation](https://github.com/anthropics/claude-agent-sdk)
 - [Google ADK Documentation](https://developers.google.com/agent-kit)
 - [FastAPI Documentation](https://fastapi.tiangolo.com)
 - [React Documentation](https://react.dev)
 
 ### Paper Sources
+
 - [arXiv.org](https://arxiv.org)
 - [ACL Anthology](https://aclanthology.org)
 - [NeurIPS Proceedings](https://papers.nips.cc)
@@ -174,12 +184,14 @@ We use GitHub labels to track contributions:
 We're currently focusing on:
 
 1. **High-Priority Papers**
+
    - Agent architectures
    - Tool learning
    - Multi-agent systems
    - Context management
 
 2. **Platform Features**
+
    - Batch processing
    - Quality metrics
    - User management
@@ -205,6 +217,7 @@ By contributing, you agree that your contributions will be licensed under the MI
 ## 🙏 Recognition
 
 Contributors are recognized in:
+
 - README.md contributors section
 - Annual project report
 - Special badges for significant contributions
