@@ -44,14 +44,16 @@ class TranslationAgent(BaseAgent):
         if not content:
             return {"success": False, "error": "No content provided"}
 
-        return await self.translate({
-            "content": content,
-            "target_language": options["target_language"],
-            "preserve_format": options["preserve_format"],
-            "preserve_code": options["preserve_code"],
-            "preserve_formulas": options["preserve_formulas"],
-            "paper_id": input_data.get("paper_id"),
-        })
+        return await self.translate(
+            {
+                "content": content,
+                "target_language": options["target_language"],
+                "preserve_format": options["preserve_format"],
+                "preserve_code": options["preserve_code"],
+                "preserve_formulas": options["preserve_formulas"],
+                "paper_id": input_data.get("paper_id"),
+            }
+        )
 
     async def translate(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """翻译文本内容.
@@ -76,13 +78,15 @@ class TranslationAgent(BaseAgent):
 
             if content_length <= batch_size:
                 # 单次翻译
-                result = await self._translate_single({
-                    "content": content,
-                    "target_language": target_language,
-                    "preserve_format": preserve_format,
-                    "preserve_code": preserve_code,
-                    "preserve_formulas": preserve_formulas,
-                })
+                result = await self._translate_single(
+                    {
+                        "content": content,
+                        "target_language": target_language,
+                        "preserve_format": preserve_format,
+                        "preserve_code": preserve_code,
+                        "preserve_formulas": preserve_formulas,
+                    }
+                )
 
                 if result["success"] and paper_id:
                     await self._save_translation(paper_id, result["data"]["content"])
@@ -90,15 +94,17 @@ class TranslationAgent(BaseAgent):
                 return result
             else:
                 # 批量翻译
-                return await self._translate_batch({
-                    "content": content,
-                    "target_language": target_language,
-                    "preserve_format": preserve_format,
-                    "preserve_code": preserve_code,
-                    "preserve_formulas": preserve_formulas,
-                    "batch_size": batch_size,
-                    "paper_id": paper_id,
-                })
+                return await self._translate_batch(
+                    {
+                        "content": content,
+                        "target_language": target_language,
+                        "preserve_format": preserve_format,
+                        "preserve_code": preserve_code,
+                        "preserve_formulas": preserve_formulas,
+                        "batch_size": batch_size,
+                        "paper_id": paper_id,
+                    }
+                )
 
         except Exception as e:
             logger.error(f"Error in translation: {str(e)}")
@@ -130,7 +136,7 @@ class TranslationAgent(BaseAgent):
                     "content": result["data"],
                     "word_count": len(result["data"].split()),
                     "batch_count": 1,
-                }
+                },
             }
         else:
             return result
@@ -156,16 +162,18 @@ class TranslationAgent(BaseAgent):
         # 准备批量调用
         calls = []
         for i, batch in enumerate(batches):
-            calls.append({
-                "skill": "zh-translator",
-                "params": {
-                    "content": batch,
-                    "target_language": params["target_language"],
-                    "preserve_format": params["preserve_format"],
-                    "preserve_code_blocks": params["preserve_code"],
-                    "preserve_math_formulas": params["preserve_formulas"],
+            calls.append(
+                {
+                    "skill": "zh-translator",
+                    "params": {
+                        "content": batch,
+                        "target_language": params["target_language"],
+                        "preserve_format": params["preserve_format"],
+                        "preserve_code_blocks": params["preserve_code"],
+                        "preserve_math_formulas": params["preserve_formulas"],
+                    },
                 }
-            })
+            )
 
         # 批量翻译
         results = await self.batch_call_skill(calls)
@@ -197,7 +205,7 @@ class TranslationAgent(BaseAgent):
                 "content": translated_content,
                 "word_count": total_word_count,
                 "batch_count": len(batches),
-            }
+            },
         }
 
     def _split_content(self, content: str, batch_size: int) -> List[str]:
@@ -270,7 +278,9 @@ class TranslationAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error saving translation: {str(e)}")
 
-    async def validate_translation(self, original: str, translated: str) -> Dict[str, Any]:
+    async def validate_translation(
+        self, original: str, translated: str
+    ) -> Dict[str, Any]:
         """验证翻译质量.
 
         Args:
@@ -303,8 +313,9 @@ class TranslationAgent(BaseAgent):
                 "translated_length": translated_length,
                 "length_ratio": length_ratio,
                 "code_blocks_preserved": code_blocks_original == code_blocks_translated,
-                "formulas_preserved": formula_blocks_original == formula_blocks_translated,
-            }
+                "formulas_preserved": formula_blocks_original
+                == formula_blocks_translated,
+            },
         }
 
         # 添加警告
@@ -315,7 +326,9 @@ class TranslationAgent(BaseAgent):
             validation["warnings"].append("Code blocks may not be preserved correctly")
 
         if formula_blocks_original != formula_blocks_translated:
-            validation["warnings"].append("Math formulas may not be preserved correctly")
+            validation["warnings"].append(
+                "Math formulas may not be preserved correctly"
+            )
 
         return validation
 
@@ -329,6 +342,7 @@ class TranslationAgent(BaseAgent):
             代码块数量
         """
         import re
+
         return len(re.findall(r"```.*?```", content, re.DOTALL))
 
     def _count_formula_blocks(self, content: str) -> int:
@@ -341,5 +355,6 @@ class TranslationAgent(BaseAgent):
             数学公式数量
         """
         import re
+
         # LaTeX 公式
         return len(re.findall(r"\$\$.*?\$\$|\$.*?\$", content, re.DOTALL))

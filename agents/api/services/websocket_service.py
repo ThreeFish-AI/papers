@@ -16,7 +16,9 @@ class WebSocketService:
         """
         self.manager = connection_manager
 
-    async def send_task_update(self, task_id: str, status: str, progress: float = None, message: str = None):
+    async def send_task_update(
+        self, task_id: str, status: str, progress: float = None, message: str = None
+    ):
         """发送任务更新.
 
         Args:
@@ -26,9 +28,12 @@ class WebSocketService:
             message: 消息
         """
         from ..routes.websocket import send_task_update
+
         await send_task_update(task_id, status, progress, message)
 
-    async def send_task_completion(self, task_id: str, result: dict = None, error: str = None):
+    async def send_task_completion(
+        self, task_id: str, result: dict = None, error: str = None
+    ):
         """发送任务完成通知.
 
         Args:
@@ -37,9 +42,12 @@ class WebSocketService:
             error: 错误
         """
         from ..routes.websocket import send_task_completion
+
         await send_task_completion(task_id, result, error)
 
-    async def send_batch_progress(self, batch_id: str, total: int, processed: int, current_file: str = None):
+    async def send_batch_progress(
+        self, batch_id: str, total: int, processed: int, current_file: str = None
+    ):
         """发送批处理进度.
 
         Args:
@@ -49,4 +57,5 @@ class WebSocketService:
             current_file: 当前文件
         """
         from ..routes.websocket import send_batch_progress
+
         await send_batch_progress(batch_id, total, processed, current_file)

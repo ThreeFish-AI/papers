@@ -8,8 +8,7 @@ import logging
 
 # 配置日志
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -22,6 +21,7 @@ async def lifespan(app: FastAPI):
     try:
         # 初始化服务
         from agents.api.services.task_service import task_service
+
         await task_service.initialize()
         logger.info("Services initialized successfully")
     except Exception as e:
@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Agentic AI Papers API...")
     try:
         from agents.api.services.task_service import task_service
+
         await task_service.cleanup()
         logger.info("Services cleanup completed")
     except Exception as e:
@@ -66,8 +67,7 @@ async def global_exception_handler(request, exc):
     """全局异常处理器."""
     logger.error(f"Global exception: {str(exc)}", exc_info=True)
     return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error", "error": str(exc)}
+        status_code=500, content={"detail": "Internal server error", "error": str(exc)}
     )
 
 
@@ -75,11 +75,7 @@ async def global_exception_handler(request, exc):
 @app.get("/health")
 async def health_check():
     """健康检查接口."""
-    return {
-        "status": "healthy",
-        "service": "agentic-ai-papers-api",
-        "version": "1.0.0"
-    }
+    return {"status": "healthy", "service": "agentic-ai-papers-api", "version": "1.0.0"}
 
 
 # 根路径
@@ -90,7 +86,7 @@ async def root():
         "message": "Agentic AI Papers API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
     }
 
 

@@ -46,12 +46,14 @@ class HeartfeltAgent(BaseAgent):
         if not content:
             return {"success": False, "error": "No content provided"}
 
-        return await self.analyze({
-            "content": content,
-            "translation": translation,
-            "paper_id": input_data.get("paper_id"),
-            "options": options,
-        })
+        return await self.analyze(
+            {
+                "content": content,
+                "translation": translation,
+                "paper_id": input_data.get("paper_id"),
+                "options": options,
+            }
+        )
 
     async def analyze(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """深度分析文档内容.
@@ -100,10 +102,7 @@ class HeartfeltAgent(BaseAgent):
                 if paper_id:
                     await self._save_analysis(paper_id, analysis_data)
 
-                return {
-                    "success": True,
-                    "data": analysis_data
-                }
+                return {"success": True, "data": analysis_data}
             else:
                 return result
 
@@ -111,7 +110,9 @@ class HeartfeltAgent(BaseAgent):
             logger.error(f"Error in heartfelt analysis: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def _process_analysis_result(self, data: Dict[str, Any], original_content: str) -> Dict[str, Any]:
+    def _process_analysis_result(
+        self, data: Dict[str, Any], original_content: str
+    ) -> Dict[str, Any]:
         """处理分析结果.
 
         Args:
@@ -175,6 +176,7 @@ class HeartfeltAgent(BaseAgent):
 
             # 保存结构化数据（JSON格式）
             import json
+
             structured_file = output_dir / f"{paper_id}_analysis.json"
             structured_data = {
                 "paper_id": paper_id,
@@ -207,13 +209,16 @@ class HeartfeltAgent(BaseAgent):
         """
         try:
             category = paper_id.split("_")[0] if "_" in paper_id else "general"
-            analysis_file = self.papers_dir / "heartfelt" / category / f"{paper_id}_analysis.json"
+            analysis_file = (
+                self.papers_dir / "heartfelt" / category / f"{paper_id}_analysis.json"
+            )
 
             if not analysis_file.exists():
                 return {"success": False, "error": "Analysis not found"}
 
             # 读取分析数据
             import json
+
             with open(analysis_file, "r", encoding="utf-8") as f:
                 analysis_data = json.load(f)
 
@@ -221,7 +226,9 @@ class HeartfeltAgent(BaseAgent):
             report = self._generate_report_content(analysis_data)
 
             # 保存报告
-            report_file = self.papers_dir / "heartfelt" / category / f"{paper_id}_report.md"
+            report_file = (
+                self.papers_dir / "heartfelt" / category / f"{paper_id}_report.md"
+            )
             with open(report_file, "w", encoding="utf-8") as f:
                 f.write(report)
 
@@ -231,7 +238,7 @@ class HeartfeltAgent(BaseAgent):
                     "report_content": report,
                     "report_file": str(report_file),
                     "stats": analysis_data.get("stats", {}),
-                }
+                },
             }
 
         except Exception as e:
@@ -255,52 +262,64 @@ class HeartfeltAgent(BaseAgent):
 
         # 添加摘要
         if analysis_data.get("summary"):
-            report_lines.extend([
-                "\n## 📝 内容摘要\n",
-                analysis_data["summary"],
-            ])
+            report_lines.extend(
+                [
+                    "\n## 📝 内容摘要\n",
+                    analysis_data["summary"],
+                ]
+            )
 
         # 添加要点
         if analysis_data.get("key_points"):
-            report_lines.extend([
-                "\n## 🔑 核心要点\n",
-            ])
+            report_lines.extend(
+                [
+                    "\n## 🔑 核心要点\n",
+                ]
+            )
             for i, point in enumerate(analysis_data["key_points"], 1):
                 report_lines.append(f"{i}. {point}")
 
         # 添加洞察
         if analysis_data.get("insights"):
-            report_lines.extend([
-                "\n## 💡 深度洞察\n",
-            ])
+            report_lines.extend(
+                [
+                    "\n## 💡 深度洞察\n",
+                ]
+            )
             for i, insight in enumerate(analysis_data["insights"], 1):
                 report_lines.append(f"{i}. {insight}")
 
         # 添加感悟
         if analysis_data.get("reflections"):
-            report_lines.extend([
-                "\n## 🤔 读后感悟\n",
-            ])
+            report_lines.extend(
+                [
+                    "\n## 🤔 读后感悟\n",
+                ]
+            )
             for i, reflection in enumerate(analysis_data["reflections"], 1):
                 report_lines.append(f"{i}. {reflection}")
 
         # 添加统计信息
         if analysis_data.get("stats"):
             stats = analysis_data["stats"]
-            report_lines.extend([
-                "\n## 📊 阅读统计\n",
-                f"- 原文词数: {stats.get('original_word_count', 0)}\n",
-                f"- 分析词数: {stats.get('analysis_word_count', 0)}\n",
-                f"- 要点数量: {stats.get('key_points_count', 0)}\n",
-                f"- 洞察数量: {stats.get('insights_count', 0)}\n",
-            ])
+            report_lines.extend(
+                [
+                    "\n## 📊 阅读统计\n",
+                    f"- 原文词数: {stats.get('original_word_count', 0)}\n",
+                    f"- 分析词数: {stats.get('analysis_word_count', 0)}\n",
+                    f"- 要点数量: {stats.get('key_points_count', 0)}\n",
+                    f"- 洞察数量: {stats.get('insights_count', 0)}\n",
+                ]
+            )
 
         # 添加结构分析
         if analysis_data.get("structure"):
             structure = analysis_data["structure"]
-            report_lines.extend([
-                "\n## 📚 文章结构\n",
-            ])
+            report_lines.extend(
+                [
+                    "\n## 📚 文章结构\n",
+                ]
+            )
             for section, info in structure.items():
                 report_lines.append(f"- **{section}**: {info}")
 

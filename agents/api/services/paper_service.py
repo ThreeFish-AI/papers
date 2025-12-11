@@ -22,15 +22,9 @@ class PaperService:
     def __init__(self):
         """初始化 PaperService."""
         self.papers_dir = Path(settings.PAPERS_DIR)
-        self.workflow_agent = WorkflowAgent({
-            "papers_dir": str(self.papers_dir)
-        })
-        self.batch_agent = BatchProcessingAgent({
-            "papers_dir": str(self.papers_dir)
-        })
-        self.heartfelt_agent = HeartfeltAgent({
-            "papers_dir": str(self.papers_dir)
-        })
+        self.workflow_agent = WorkflowAgent({"papers_dir": str(self.papers_dir)})
+        self.batch_agent = BatchProcessingAgent({"papers_dir": str(self.papers_dir)})
+        self.heartfelt_agent = HeartfeltAgent({"papers_dir": str(self.papers_dir)})
 
     async def upload_paper(self, file: UploadFile, category: str) -> Dict[str, Any]:
         """处理文件上传.
@@ -43,7 +37,7 @@ class PaperService:
             上传结果
         """
         # 生成唯一ID和文件路径
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_filename = self._sanitize_filename(file.filename)
         paper_id = f"{category}_{timestamp}_{safe_filename}"
 
@@ -68,7 +62,7 @@ class PaperService:
                 "size": file_size,
                 "upload_time": datetime.now().isoformat(),
                 "status": "uploaded",
-                "workflows": {}
+                "workflows": {},
             }
 
             await self._save_metadata(paper_id, metadata)
@@ -80,7 +74,7 @@ class PaperService:
                 "filename": file.filename,
                 "category": category,
                 "size": file_size,
-                "upload_time": metadata["upload_time"]
+                "upload_time": metadata["upload_time"],
             }
 
         except Exception as e:
@@ -109,19 +103,25 @@ class PaperService:
 
         try:
             # 启动处理
-            result = await self.workflow_agent.process({
-                "source_path": str(source_path),
-                "workflow": workflow,
-                "paper_id": paper_id,
-            })
+            result = await self.workflow_agent.process(
+                {
+                    "source_path": str(source_path),
+                    "workflow": workflow,
+                    "paper_id": paper_id,
+                }
+            )
 
             if result["success"]:
                 await self._update_status(paper_id, "completed", workflow)
             else:
-                await self._update_status(paper_id, "failed", workflow, result.get("error"))
+                await self._update_status(
+                    paper_id, "failed", workflow, result.get("error")
+                )
 
             # 创建任务记录
-            task_id = f"task_{paper_id}_{workflow}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            task_id = (
+                f"task_{paper_id}_{workflow}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            )
             await self._create_task_record(paper_id, task_id, workflow, result)
 
             return {
@@ -129,7 +129,7 @@ class PaperService:
                 "paper_id": paper_id,
                 "workflow": workflow,
                 "status": "completed" if result["success"] else "failed",
-                "result": result if result["success"] else None
+                "result": result if result["success"] else None,
             }
 
         except Exception as e:
@@ -184,7 +184,7 @@ class PaperService:
                 "content_type": "source",
                 "format": "pdf",
                 "file_path": str(source_path),
-                "size": source_path.stat().st_size
+                "size": source_path.stat().st_size,
             }
 
         else:
@@ -209,7 +209,7 @@ class PaperService:
                 "format": "markdown",
                 "content": content,
                 "word_count": len(content.split()),
-                "file_path": str(content_path)
+                "file_path": str(content_path),
             }
 
     async def list_papers(
@@ -217,7 +217,7 @@ class PaperService:
         category: Optional[str] = None,
         status: Optional[str] = None,
         limit: int = 20,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """获取论文列表.
 
@@ -244,7 +244,7 @@ class PaperService:
 
                 # 遍历分类下的所有文件
                 for file_path in cat_dir.iterdir():
-                    if file_path.is_file() and file_path.suffix == '.pdf':
+                    if file_path.is_file() and file_path.suffix == ".pdf":
                         paper_id = file_path.name
 
                         # 获取元数据
@@ -254,29 +254,26 @@ class PaperService:
                             if status and metadata.get("status") != status:
                                 continue
 
-                            papers.append({
-                                "paper_id": paper_id,
-                                "filename": metadata.get("filename", paper_id),
-                                "category": current_category,
-                                "status": metadata.get("status", "unknown"),
-                                "upload_time": metadata.get("upload_time"),
-                                "updated_at": metadata.get("updated_at"),
-                                "size": file_path.stat().st_size,
-                            })
+                            papers.append(
+                                {
+                                    "paper_id": paper_id,
+                                    "filename": metadata.get("filename", paper_id),
+                                    "category": current_category,
+                                    "status": metadata.get("status", "unknown"),
+                                    "upload_time": metadata.get("upload_time"),
+                                    "updated_at": metadata.get("updated_at"),
+                                    "size": file_path.stat().st_size,
+                                }
+                            )
 
         # 排序（按上传时间倒序）
         papers.sort(key=lambda x: x["upload_time"], reverse=True)
 
         # 分页
         total = len(papers)
-        papers = papers[offset:offset + limit]
+        papers = papers[offset : offset + limit]
 
-        return {
-            "papers": papers,
-            "total": total,
-            "offset": offset,
-            "limit": limit
-        }
+        return {"papers": papers, "total": total, "offset": offset, "limit": limit}
 
     async def delete_paper(self, paper_id: str) -> Dict[str, Any]:
         """删除论文及其相关数据.
@@ -297,7 +294,9 @@ class PaperService:
                 source_path.unlink()
 
             # 删除翻译文件
-            translation_path = self.papers_dir / "translation" / category / f"{paper_id}.md"
+            translation_path = (
+                self.papers_dir / "translation" / category / f"{paper_id}.md"
+            )
             if translation_path.exists():
                 translation_path.unlink()
 
@@ -320,16 +319,15 @@ class PaperService:
 
             logger.info(f"Paper deleted successfully: {paper_id}")
 
-            return {
-                "paper_id": paper_id,
-                "deleted": True
-            }
+            return {"paper_id": paper_id, "deleted": True}
 
         except Exception as e:
             logger.error(f"Error deleting paper {paper_id}: {str(e)}")
             raise
 
-    async def batch_process_papers(self, paper_ids: List[str], workflow: str) -> Dict[str, Any]:
+    async def batch_process_papers(
+        self, paper_ids: List[str], workflow: str
+    ) -> Dict[str, Any]:
         """批量处理论文.
 
         Args:
@@ -350,14 +348,13 @@ class PaperService:
             raise ValueError("没有找到有效的论文文件")
 
         # 启动批处理
-        result = await self.batch_agent.batch_process({
-            "files": file_paths,
-            "workflow": workflow,
-            "options": {
-                "batch_size": 5,
-                "parallel_tasks": 3
+        result = await self.batch_agent.batch_process(
+            {
+                "files": file_paths,
+                "workflow": workflow,
+                "options": {"batch_size": 5, "parallel_tasks": 3},
             }
-        })
+        )
 
         return {
             "batch_id": f"batch_{datetime.now().strftime('%Y%m%d%H%M%S')}",
@@ -365,7 +362,7 @@ class PaperService:
             "total_files": len(file_paths),
             "workflow": workflow,
             "stats": result["stats"],
-            "results": result["results"]
+            "results": result["results"],
         }
 
     async def get_paper_report(self, paper_id: str) -> Dict[str, Any]:
@@ -382,10 +379,7 @@ class PaperService:
         if not result["success"]:
             raise ValueError(result.get("error", "生成报告失败"))
 
-        return {
-            "paper_id": paper_id,
-            "report": result["data"]
-        }
+        return {"paper_id": paper_id, "report": result["data"]}
 
     # 私有辅助方法
 
@@ -393,7 +387,8 @@ class PaperService:
         """清理文件名."""
         # 移除特殊字符，只保留字母、数字、下划线、连字符和点
         import re
-        safe_name = re.sub(r'[^\w\-_\.]', '_', filename)
+
+        safe_name = re.sub(r"[^\w\-_\.]", "_", filename)
         return safe_name
 
     def _get_source_path(self, paper_id: str) -> Path:
@@ -424,6 +419,7 @@ class PaperService:
 
         metadata_file = metadata_dir / f"{paper_id}.json"
         import json
+
         with open(metadata_file, "w", encoding="utf-8") as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
@@ -436,6 +432,7 @@ class PaperService:
             return None
 
         import json
+
         with open(metadata_file, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -454,12 +451,17 @@ class PaperService:
         if metadata_file.exists():
             metadata_file.unlink()
 
-    async def _update_status(self, paper_id: str, status: str, workflow: str = None, error: str = None):
+    async def _update_status(
+        self, paper_id: str, status: str, workflow: str = None, error: str = None
+    ):
         """更新状态."""
         updates = {"status": status}
         if workflow:
             workflows = (await self._get_metadata(paper_id) or {}).get("workflows", {})
-            workflow_status = {"status": status, "updated_at": datetime.now().isoformat()}
+            workflow_status = {
+                "status": status,
+                "updated_at": datetime.now().isoformat(),
+            }
             if error:
                 workflow_status["error"] = error
             workflows[workflow] = workflow_status
@@ -467,7 +469,9 @@ class PaperService:
 
         await self._update_metadata(paper_id, updates)
 
-    async def _create_task_record(self, paper_id: str, task_id: str, workflow: str, result: Dict[str, Any]):
+    async def _create_task_record(
+        self, paper_id: str, task_id: str, workflow: str, result: Dict[str, Any]
+    ):
         """创建任务记录."""
         # 这里可以实现任务记录保存逻辑
         # 例如保存到数据库或文件

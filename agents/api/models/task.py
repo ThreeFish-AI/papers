@@ -7,6 +7,7 @@ from datetime import datetime
 
 class TaskResponse(BaseModel):
     """任务响应模型."""
+
     task_id: str = Field(..., description="任务ID")
     paper_id: str = Field(..., description="论文ID")
     workflow: str = Field(..., description="工作流类型")
@@ -29,13 +30,14 @@ class TaskResponse(BaseModel):
                 "progress": 65.5,
                 "message": "正在翻译内容...",
                 "created_at": "2024-01-15T14:30:00",
-                "updated_at": "2024-01-15T14:35:00"
+                "updated_at": "2024-01-15T14:35:00",
             }
         }
 
 
 class TaskInfo(BaseModel):
     """任务信息模型（用于列表）."""
+
     task_id: str = Field(..., description="任务ID")
     paper_id: str = Field(..., description="论文ID")
     workflow: str = Field(..., description="工作流类型")
@@ -47,6 +49,7 @@ class TaskInfo(BaseModel):
 
 class TaskListResponse(BaseModel):
     """任务列表响应模型."""
+
     tasks: List[TaskInfo] = Field(..., description="任务列表")
     total: int = Field(..., description="总数")
     offset: int = Field(..., description="偏移量")
@@ -55,6 +58,7 @@ class TaskListResponse(BaseModel):
 
 class TaskUpdate(BaseModel):
     """任务更新模型（WebSocket 消息）."""
+
     type: str = Field(..., description="消息类型")
     task_id: str = Field(..., description="任务ID")
     status: Optional[str] = Field(None, description="状态")
@@ -65,6 +69,7 @@ class TaskUpdate(BaseModel):
 
 class TaskCompletion(BaseModel):
     """任务完成模型（WebSocket 消息）."""
+
     type: str = Field(..., description="消息类型")
     task_id: str = Field(..., description="任务ID")
     success: bool = Field(..., description="是否成功")
@@ -75,6 +80,7 @@ class TaskCompletion(BaseModel):
 
 class BatchProgress(BaseModel):
     """批处理进度模型（WebSocket 消息）."""
+
     type: str = Field(..., description="消息类型")
     batch_id: str = Field(..., description="批次ID")
     total: int = Field(..., description="总数")
@@ -86,39 +92,46 @@ class BatchProgress(BaseModel):
 
 class WebSocketMessage(BaseModel):
     """WebSocket 消息基模型."""
+
     type: str = Field(..., description="消息类型")
     timestamp: str = Field(..., description="时间戳")
 
 
 class SubscribeMessage(WebSocketMessage):
     """订阅消息模型."""
+
     type: str = Field(default="subscribe", description="消息类型")
     task_id: str = Field(..., description="任务ID")
 
 
 class UnsubscribeMessage(WebSocketMessage):
     """取消订阅消息模型."""
+
     type: str = Field(default="unsubscribe", description="消息类型")
     task_id: str = Field(..., description="任务ID")
 
 
 class PingMessage(WebSocketMessage):
     """心跳消息模型."""
+
     type: str = Field(default="ping", description="消息类型")
 
 
 class PongMessage(WebSocketMessage):
     """心跳响应消息模型."""
+
     type: str = Field(default="pong", description="消息类型")
 
 
 class SubscriptionConfirmed(WebSocketMessage):
     """订阅确认消息模型."""
+
     type: str = Field(default="subscription_confirmed", description="消息类型")
     task_id: str = Field(..., description="任务ID")
 
 
 class UnsubscriptionConfirmed(WebSocketMessage):
     """取消订阅确认消息模型."""
+
     type: str = Field(default="unsubscription_confirmed", description="消息类型")
     task_id: str = Field(..., description="任务ID")

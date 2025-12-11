@@ -11,7 +11,7 @@ from agents.api.models.paper import (
     PaperStatus,
     PaperContent,
     PaperListResponse,
-    BatchProcessRequest
+    BatchProcessRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ async def get_paper_service() -> PaperService:
 async def upload_paper(
     file: UploadFile = File(...),
     category: str = Query("general", description="论文分类"),
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     上传论文文件.
@@ -36,7 +36,7 @@ async def upload_paper(
     - **file**: PDF 文件
     - **category**: 论文分类（可选）
     """
-    if not file.filename.lower().endswith('.pdf'):
+    if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="只支持 PDF 文件")
 
     if file.size and file.size > 50 * 1024 * 1024:  # 50MB 限制
@@ -54,7 +54,7 @@ async def upload_paper(
 async def process_paper(
     paper_id: str = Path(..., description="论文 ID"),
     request: PaperProcessRequest = ...,
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     处理论文（提取/翻译/分析）.
@@ -75,7 +75,7 @@ async def process_paper(
 @router.get("/{paper_id}/status", response_model=PaperStatus)
 async def get_paper_status(
     paper_id: str = Path(..., description="论文 ID"),
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     获取论文处理状态.
@@ -95,8 +95,10 @@ async def get_paper_status(
 @router.get("/{paper_id}/content")
 async def get_paper_content(
     paper_id: str = Path(..., description="论文 ID"),
-    content_type: str = Query("translation", description="内容类型: source, translation, heartfelt"),
-    service: PaperService = Depends(get_paper_service)
+    content_type: str = Query(
+        "translation", description="内容类型: source, translation, heartfelt"
+    ),
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     获取论文内容.
@@ -123,7 +125,7 @@ async def list_papers(
     status: Optional[str] = Query(None, description="按状态筛选"),
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     获取论文列表.
@@ -135,10 +137,7 @@ async def list_papers(
     """
     try:
         papers = await service.list_papers(
-            category=category,
-            status=status,
-            limit=limit,
-            offset=offset
+            category=category, status=status, limit=limit, offset=offset
         )
         return papers
     except Exception as e:
@@ -149,7 +148,7 @@ async def list_papers(
 @router.delete("/{paper_id}")
 async def delete_paper(
     paper_id: str = Path(..., description="论文 ID"),
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     删除论文及其相关数据.
@@ -170,7 +169,7 @@ async def delete_paper(
 async def batch_process_papers(
     paper_ids: List[str],
     workflow: str = Query("full", description="处理工作流"),
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     批量处理论文.
@@ -192,7 +191,7 @@ async def batch_process_papers(
 @router.get("/{paper_id}/report")
 async def get_paper_report(
     paper_id: str = Path(..., description="论文 ID"),
-    service: PaperService = Depends(get_paper_service)
+    service: PaperService = Depends(get_paper_service),
 ):
     """
     获取论文的深度阅读报告.

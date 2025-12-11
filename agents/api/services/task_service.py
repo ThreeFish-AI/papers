@@ -31,10 +31,7 @@ class TaskService:
         # 保存正在运行的任务状态
 
     async def create_task(
-        self,
-        paper_id: str,
-        workflow: str,
-        params: Optional[Dict[str, Any]] = None
+        self, paper_id: str, workflow: str, params: Optional[Dict[str, Any]] = None
     ) -> str:
         """创建新任务.
 
@@ -90,7 +87,7 @@ class TaskService:
         progress: Optional[float] = None,
         message: Optional[str] = None,
         result: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None
+        error: Optional[str] = None,
     ):
         """更新任务状态.
 
@@ -133,6 +130,7 @@ class TaskService:
         # 发送 WebSocket 更新（如果可用）
         try:
             from ..routes.websocket import send_task_update
+
             await send_task_update(task_id, status, progress, message)
 
             # 如果任务完成，发送完成通知
@@ -159,16 +157,18 @@ class TaskService:
             return {
                 "task_id": task_id,
                 "status": task["status"],
-                "message": f"Task is already {task['status']}"
+                "message": f"Task is already {task['status']}",
             }
 
         # 更新状态
-        await self.update_task(task_id, status="cancelled", message="Task cancelled by user")
+        await self.update_task(
+            task_id, status="cancelled", message="Task cancelled by user"
+        )
 
         return {
             "task_id": task_id,
             "status": "cancelled",
-            "message": "Task cancelled successfully"
+            "message": "Task cancelled successfully",
         }
 
     async def list_tasks(
@@ -177,7 +177,7 @@ class TaskService:
         paper_id: Optional[str] = None,
         workflow: Optional[str] = None,
         limit: int = 20,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """获取任务列表.
 
@@ -206,14 +206,9 @@ class TaskService:
 
         # 分页
         total = len(tasks)
-        tasks = tasks[offset:offset + limit]
+        tasks = tasks[offset : offset + limit]
 
-        return {
-            "tasks": tasks,
-            "total": total,
-            "offset": offset,
-            "limit": limit
-        }
+        return {"tasks": tasks, "total": total, "offset": offset, "limit": limit}
 
     async def get_task_logs(self, task_id: str, lines: int = 100) -> List[str]:
         """获取任务日志.
@@ -241,7 +236,9 @@ class TaskService:
             logger.error(f"Error reading task logs: {str(e)}")
             return []
 
-    async def cleanup_completed_tasks(self, older_than_hours: int = 24) -> Dict[str, Any]:
+    async def cleanup_completed_tasks(
+        self, older_than_hours: int = 24
+    ) -> Dict[str, Any]:
         """清理已完成的任务.
 
         Args:
@@ -271,10 +268,7 @@ class TaskService:
 
         logger.info(f"Cleaned up {len(tasks_to_remove)} old tasks")
 
-        return {
-            "cleaned": len(tasks_to_remove),
-            "cutoff_time": cutoff_str
-        }
+        return {"cleaned": len(tasks_to_remove), "cutoff_time": cutoff_str}
 
     async def _save_task_log(self, task_id: str, message: str):
         """保存任务日志.
