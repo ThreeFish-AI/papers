@@ -2,9 +2,15 @@ name: CI/CD Pipeline
 
 on:
   pull_request:
-    branches: [main, master, 'release/**']
+    branches:
+      - main
+      - master
+      - 'release/**'
   push:
-    branches: [main, master, 'release/**']
+    branches:
+      - main
+      - master
+      - 'release/**'
 
 # Environment variables
 env:
@@ -166,7 +172,7 @@ jobs:
     name: Docker Build & Test
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')
 
     steps:
       - name: Checkout code
@@ -279,7 +285,7 @@ jobs:
         continue-on-error: true
 
       - name: Deploy to GitHub Pages
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && -f "mkdocs.yml"
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) && hashFiles('mkdocs.yml') != ''
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -324,7 +330,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     needs: [test, security, docker]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/'))
 
     steps:
       - name: Checkout code
