@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   pull_request:
-    branches: [main, master, release/**]
+    branches: [main, master, 'release/**']
   push:
-    branches: [main, master, release/**]
+    branches: [main, master, 'release/**']
 
 # Environment variables
 env:
