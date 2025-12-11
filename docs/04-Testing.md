@@ -37,6 +37,97 @@ graph TB
     F --> H
 ```
 
+### 测试目标
+
+- 代码覆盖率目标：> 80%
+- 单元测试比例：> 70%
+- 测试执行时间：< 5 分钟
+- 测试稳定性：> 95%
+
+## 快速开始
+
+### 安装测试依赖
+
+```bash
+pip install -e ".[dev]"
+```
+
+### 运行所有测试
+
+```bash
+# 使用项目提供的测试脚本 (从tests/agents目录)
+python run_tests.py
+
+# 或者从项目根目录运行
+python tests/agents/run_tests.py
+
+# 或者直接使用pytest
+pytest tests/agents -v
+```
+
+### 运行特定类型的测试
+
+```bash
+# 只运行单元测试
+pytest tests/agents/unit -v
+
+# 只运行集成测试
+pytest tests/agents/integration -v
+
+# 运行特定测试文件
+pytest tests/agents/unit/api/services/test_paper_service.py -v
+```
+
+### 生成覆盖率报告
+
+```bash
+pytest tests/agents --cov=agents --cov-report=html
+# 报告将生成在 htmlcov/index.html
+```
+
+### 运行带标记的测试
+
+```bash
+# 跳过慢速测试
+pytest tests/agents -m "not slow"
+
+# 只运行集成测试
+pytest tests/agents -m integration
+
+# 运行WebSocket相关测试
+pytest tests/agents -m websocket
+```
+
+## 测试结构
+
+### 目录组织
+
+```
+tests/agents/
+├── conftest.py              # 全局测试配置和fixtures
+├── unit/                    # 单元测试
+│   ├── agents/             # Agent层测试
+│   │   └── test_workflow_agent.py
+│   └── api/                # API层测试
+│       ├── services/       # 服务层测试
+│       │   └── test_paper_service.py
+│       └── routes/         # 路由测试
+│           └── test_papers_routes.py
+├── integration/             # 集成测试
+│   └── test_api_integration.py
+├── fixtures/               # 测试工具和数据
+│   ├── factories/          # 数据工厂
+│   │   ├── paper_factory.py
+│   │   └── task_factory.py
+│   └── mocks/              # Mock配置
+│       ├── mock_claude_api.py
+│       ├── mock_file_operations.py
+│       └── mock_websocket.py
+└── data/                  # 测试数据
+    └── sample_papers/
+        └── sample.pdf
+```
+
 ### 测试配置
 
 项目已在 `pyproject.toml` 中配置了完整的测试环境：
@@ -55,60 +146,39 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config --cov=agents --cov=api --cov=core"
-testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=agents",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+    "-p no:warnings",
+]
+testpaths = [
+    "tests",
+]
+asyncio_mode = "auto"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "e2e: marks tests as end-to-end tests"
+    "e2e: marks tests as end-to-end tests",
+    "performance: marks tests as performance tests",
+    "websocket: marks tests that require WebSocket",
 ]
 ```
 
-## 测试结构
+## 测试类型与示例
 
-### 目录组织
+### 单元测试
 
-```
-tests/
-├── unit/                   # 单元测试
-│   ├── agents/            # Agent 测试
-│   │   ├── test_base.py
-│   │   ├── test_pdf_agent.py
-│   │   ├── test_translation_agent.py
-│   │   └── test_workflow_agent.py
-│   ├── api/               # API 测试
-│   │   ├── test_routes/
-│   │   ├── test_services/
-│   │   └── test_models/
-│   └── core/              # 核心功能测试
-│       ├── test_config.py
-│       └── test_utils.py
-├── integration/            # 集成测试
-│   ├── test_agent_workflows.py
-│   ├── test_api_integration.py
-│   └── test_skill_integration.py
-├── e2e/                   # 端到端测试
-│   ├── test_paper_pipeline.py
-│   └── test_batch_processing.py
-├── performance/           # 性能测试
-│   ├── test_load.py
-│   └── test_memory.py
-├── fixtures/              # 测试数据
-│   ├── papers/           # 示例论文
-│   └── responses/        # Mock 响应
-├── factories/             # 数据工厂
-│   ├── __init__.py
-│   ├── paper_factory.py
-│   └── task_factory.py
-└── conftest.py           # 测试配置和 Fixtures
-```
+#### Agent 测试
 
-## 单元测试
-
-### Agent 测试
-
-#### BaseAgent 测试
+##### BaseAgent 测试
 
 ```python
 # tests/unit/agents/test_base.py
@@ -228,15 +298,6 @@ class TestPDFProcessingAgent:
 
             assert len(result) == 1
             assert result[0]["caption"] == "Figure 1"
-
-    @pytest.mark.asyncio
-    async def test_handle_corrupted_pdf(self, pdf_agent):
-        """测试处理损坏的 PDF"""
-        with patch('pdf_reader_skill.extract') as mock_extract:
-            mock_extract.side_effect = Exception("Corrupted PDF")
-
-            with pytest.raises(Exception, match="Corrupted PDF"):
-                await pdf_agent.process_pdf("corrupted.pdf")
 ```
 
 ### API 测试
@@ -285,29 +346,6 @@ class TestPaperRoutes:
 
         assert response.status_code == 400
         assert "Invalid file type" in response.json()["detail"]
-
-    @pytest.mark.asyncio
-    async def test_translate_paper(self, mock_paper_service):
-        """测试翻译论文"""
-        mock_service = mock_paper_service.return_value
-        mock_service.translate_paper.return_value = {
-            "task_id": "task_456",
-            "status": "processing"
-        }
-
-        response = client.post("/api/papers/paper_123/translate")
-
-        assert response.status_code == 200
-        assert response.json()["task_id"] == "task_456"
-
-    def test_get_paper_not_found(self, mock_paper_service):
-        """测试获取不存在的论文"""
-        mock_service = mock_paper_service.return_value
-        mock_service.get_paper.return_value = None
-
-        response = client.get("/api/papers/nonexistent")
-
-        assert response.status_code == 404
 ```
 
 #### 服务层测试
@@ -335,12 +373,10 @@ class TestPaperService:
     @pytest.mark.asyncio
     async def test_upload_and_process(self, paper_service, mock_workflow_agent):
         """测试上传并处理论文"""
-        # 模拟文件内容
         file_content = b"PDF content"
         filename = "test.pdf"
         category = "llm-agents"
 
-        # 模拟 agent 返回
         mock_agent = mock_workflow_agent.return_value
         mock_agent.process_paper.return_value = {
             "id": "paper_123",
@@ -353,167 +389,9 @@ class TestPaperService:
 
         assert result["id"] == "paper_123"
         assert result["status"] == "uploaded"
-        mock_agent.process_paper.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_batch_translate(self, paper_service, mock_workflow_agent):
-        """测试批量翻译"""
-        paper_ids = ["paper_1", "paper_2", "paper_3"]
-        mock_agent = mock_workflow_agent.return_value
-        mock_agent.batch_translate.return_value = {
-            "task_id": "batch_456",
-            "total": 3
-        }
-
-        result = await paper_service.batch_translate(paper_ids)
-
-        assert result["task_id"] == "batch_456"
-        assert result["total"] == 3
 ```
 
-### 数据模型测试
-
-```python
-# tests/unit/api/test_models/test_paper.py
-import pytest
-from pydantic import ValidationError
-from api.models.paper import Paper, PaperCreate, PaperUpdate
-
-class TestPaperModels:
-    def test_paper_creation_valid(self):
-        """测试有效的论文创建"""
-        paper_data = {
-            "id": "paper_123",
-            "filename": "test.pdf",
-            "category": "llm-agents",
-            "status": "uploaded",
-            "metadata": {
-                "title": "Test Paper",
-                "authors": ["Author A", "Author B"]
-            }
-        }
-
-        paper = Paper(**paper_data)
-
-        assert paper.id == "paper_123"
-        assert paper.category == "llm-agents"
-        assert paper.status == "uploaded"
-
-    def test_paper_creation_invalid_status(self):
-        """测试无效的状态值"""
-        paper_data = {
-            "id": "paper_123",
-            "filename": "test.pdf",
-            "status": "invalid_status"  # 无效状态
-        }
-
-        with pytest.raises(ValidationError):
-            Paper(**paper_data)
-
-    def test_paper_update_partial(self):
-        """测试部分更新"""
-        paper = Paper(
-            id="paper_123",
-            filename="test.pdf",
-            category="llm-agents",
-            status="uploaded"
-        )
-
-        update_data = PaperUpdate(status="translated")
-        updated_paper = paper.copy(update=update_data.dict(exclude_unset=True))
-
-        assert updated_paper.status == "translated"
-        assert updated_paper.filename == "test.pdf"  # 未更改
-```
-
-## 集成测试
-
-### Agent 工作流测试
-
-```python
-# tests/integration/test_agent_workflows.py
-import pytest
-import asyncio
-from agents.claude.workflow_agent import WorkflowAgent
-from agents.claude.pdf_agent import PDFProcessingAgent
-from agents.claude.translation_agent import TranslationAgent
-
-class TestAgentWorkflows:
-    @pytest.fixture
-    def workflow_config(self):
-        return {
-            "max_concurrent": 3,
-            "timeout": 300,
-            "output_dir": "tests/fixtures/output"
-        }
-
-    @pytest.fixture
-    def workflow_agent(self, workflow_config):
-        return WorkflowAgent(workflow_config)
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_full_paper_processing_pipeline(self, workflow_agent):
-        """测试完整的论文处理流水线"""
-        # 准备测试数据
-        paper_path = "tests/fixtures/papers/sample.pdf"
-
-        # 执行完整流水线
-        result = await workflow_agent.execute_pipeline({
-            "paper_path": paper_path,
-            "operations": ["extract", "translate", "analyze"],
-            "options": {
-                "preserve_formulas": True,
-                "translation_style": "academic"
-            }
-        })
-
-        # 验证结果
-        assert result["success"] is True
-        assert "extracted" in result
-        assert "translated" in result
-        assert "analyzed" in result
-
-        # 验证输出文件
-        assert Path(result["extracted"]["output_path"]).exists()
-        assert Path(result["translated"]["output_path"]).exists()
-        assert Path(result["analyzed"]["output_path"]).exists()
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_batch_processing_workflow(self, workflow_agent):
-        """测试批量处理工作流"""
-        paper_paths = [
-            "tests/fixtures/papers/paper1.pdf",
-            "tests/fixtures/papers/paper2.pdf",
-            "tests/fixtures/papers/paper3.pdf"
-        ]
-
-        results = await workflow_agent.process_batch({
-            "papers": paper_paths,
-            "operations": ["translate"],
-            "batch_size": 2
-        })
-
-        assert len(results) == 3
-        assert all(r["success"] for r in results)
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_error_handling_in_workflow(self, workflow_agent):
-        """测试工作流中的错误处理"""
-        # 使用不存在的文件
-        result = await workflow_agent.execute_pipeline({
-            "paper_path": "nonexistent.pdf",
-            "operations": ["extract"]
-        })
-
-        assert result["success"] is False
-        assert "error" in result
-        assert "File not found" in result["error"]
-```
-
-### API 集成测试
+### 集成测试
 
 ```python
 # tests/integration/test_api_integration.py
@@ -565,30 +443,9 @@ class TestAPIIntegration:
             )
             assert result_response.status_code == 200
             assert "content" in result_response.json()
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_websocket_progress_updates(self):
-        """测试 WebSocket 进度更新"""
-        with pytest.raises(Exception):
-            async with AsyncClient(app=app, base_url="http://test") as ac:
-                # 使用测试 WebSocket 客户端
-                async with ac.websocket_connect("/ws/progress") as ws:
-                    # 订阅任务
-                    await ws.send_json({
-                        "action": "subscribe",
-                        "task_id": "test_task"
-                    })
-
-                    # 接收进度更新
-                    message = await ws.receive_json()
-                    assert message["type"] == "progress_update"
-                    assert "task_id" in message
 ```
 
-## 端到端测试
-
-### 完整论文处理流程测试
+### 端到端测试
 
 ```python
 # tests/e2e/test_paper_pipeline.py
@@ -630,52 +487,9 @@ class TestPaperPipelineE2E:
             timeout=300
         )
         assert translation_result.status == "completed"
-
-        # 4. 启动深度分析
-        analysis_task = paper.analyze()
-        analysis_result = await analysis_task.wait_for_completion(
-            timeout=300
-        )
-        assert analysis_result.status == "completed"
-
-        # 5. 验证输出文件
-        translation_file = paper.download_translation()
-        analysis_file = paper.download_analysis()
-
-        assert translation_file.exists()
-        assert analysis_file.exists()
-
-        # 6. 验证内容质量
-        translation_content = translation_file.read_text(encoding='utf-8')
-        assert len(translation_content) > 1000
-        assert "## 摘要" in translation_content  # 中文内容
-
-    @pytest.mark.e2e
-    async def test_batch_processing_workflow(self, client):
-        """测试批量处理工作流"""
-        papers = []
-
-        # 上传多个论文
-        for pdf_path in Path("tests/fixtures/papers").glob("*.pdf"):
-            paper = client.upload_paper(pdf_path, category="multi-agent")
-            papers.append(paper)
-
-        # 批量翻译
-        batch_task = client.batch_translate([p.id for p in papers])
-        batch_result = await batch_task.wait_for_completion(timeout=600)
-
-        assert batch_result.success
-        assert batch_result.completed == len(papers)
-
-        # 验证所有论文都已翻译
-        for paper in papers:
-            paper.refresh()
-            assert paper.status == "translated"
 ```
 
-## 性能测试
-
-### 负载测试
+### 性能测试
 
 ```python
 # tests/performance/test_load.py
@@ -712,52 +526,24 @@ class TestLoadPerformance:
 
         assert avg_duration < 5.0  # 平均响应时间小于 5 秒
         assert max_duration < 10.0  # 最大响应时间小于 10 秒
-
-    @pytest.mark.performance
-    async def test_memory_usage(self):
-        """测试内存使用情况"""
-        import psutil
-        import os
-
-        process = psutil.Process(os.getpid())
-        initial_memory = process.memory_info().rss
-
-        # 处理大量论文
-        client = AgenticPapersClient()
-        for _ in range(100):
-            # 模拟处理（使用 mock 数据避免实际 API 调用）
-            await client._process_mock_paper()
-
-        final_memory = process.memory_info().rss
-        memory_increase = final_memory - initial_memory
-
-        # 内存增长不应超过 500MB
-        assert memory_increase < 500 * 1024 * 1024
-
-    @pytest.mark.performance
-    @pytest.mark.slow
-    async def test_sustained_load(self):
-        """测试持续负载"""
-        duration = 60  # 测试 60 秒
-        requests_per_second = 5
-
-        start_time = time.time()
-        request_count = 0
-
-        async with AsyncClient(app=app, base_url="http://test") as ac:
-            while time.time() - start_time < duration:
-                # 发送健康检查请求
-                await ac.get("/health")
-                request_count += 1
-                await asyncio.sleep(1 / requests_per_second)
-
-        # 验证系统稳定性
-        assert request_count >= duration * requests_per_second * 0.9
 ```
 
 ## Mock 策略
 
-### Agent Mock
+### 外部依赖 Mock
+
+- **Claude API**: 使用 `mock_claude_api.py` 模拟所有 Claude API 调用
+- **文件系统**: 使用 `mock_file_operations.py` 模拟文件读写操作
+- **WebSocket**: 使用 `mock_websocket.py` 模拟实时通信
+
+### 数据生成
+
+使用 `factory-boy` 生成测试数据：
+
+- `PaperFactory`: 生成论文相关数据
+- `TaskFactory`: 生成任务相关数据
+
+### 示例 Mock 配置
 
 ```python
 # tests/conftest.py
@@ -779,39 +565,6 @@ def mock_pdf_agent():
     return agent
 
 @pytest.fixture
-def mock_translation_agent():
-    """Mock Translation Agent"""
-    agent = MagicMock()
-    agent.translate = AsyncMock(return_value={
-        "translated_text": "模拟的翻译内容",
-        "preserved_elements": ["formulas", "images"]
-    })
-    return agent
-
-@pytest.fixture
-def mock_skill_responses():
-    """Mock Skill 响应"""
-    return {
-        "pdf-reader": {
-            "text": "Extracted PDF content",
-            "metadata": {}
-        },
-        "zh-translator": {
-            "translation": "翻译后的内容",
-            "quality_score": 0.95
-        },
-        "heartfelt": {
-            "summary": "论文摘要",
-            "insights": ["洞见1", "洞见2"]
-        }
-    }
-```
-
-### API Mock
-
-```python
-# tests/conftest.py
-@pytest.fixture
 def mock_anthropic_api():
     """Mock Anthropic API"""
     with patch('anthropic.Anthropic') as mock:
@@ -820,15 +573,6 @@ def mock_anthropic_api():
             "content": [{"text": "Mocked Claude response"}]
         })
         yield client
-
-@pytest.fixture
-def mock_file_operations():
-    """Mock 文件系统操作"""
-    with patch('aiofiles.open') as mock_open:
-        mock_file = MagicMock()
-        mock_file.read.return_value = b"Mock file content"
-        mock_open.return_value.__aenter__.return_value = mock_file
-        yield mock_open
 ```
 
 ## 测试数据工厂
@@ -862,18 +606,40 @@ class PaperFactory(factory.Factory):
     })
     created_at = factory.Faker('date_time')
     updated_at = factory.Faker('date_time')
-
-class TaskFactory(factory.Factory):
-    class Meta:
-        model = Task  # 假设有 Task 模型
-
-    id = factory.Faker('uuid4')
-    paper_id = factory.SubFactory(PaperFactory).id
-    type = factory.Iterator(["translate", "analyze", "batch"])
-    status = factory.Iterator(["pending", "processing", "completed", "failed"])
-    progress = factory.Faker('random_int', min=0, max=100)
-    created_at = factory.Faker('date_time')
 ```
+
+## 测试覆盖范围
+
+### 已实现的测试覆盖
+
+1. **PaperService 测试**
+
+   - 文件上传流程
+   - 论文处理工作流
+   - 状态跟踪
+   - 批量处理
+   - 错误处理
+
+2. **API 路由测试**
+
+   - 所有 API 端点
+   - 请求/响应验证
+   - 错误状态码
+   - 参数验证
+   - 分页功能
+
+3. **WorkflowAgent 测试**
+
+   - 完整处理流程
+   - 各种工作流类型
+   - 子 Agent 协调
+   - 错误恢复
+
+4. **集成测试**
+   - 端到端处理流程
+   - WebSocket 通信
+   - 并发请求处理
+   - 批量操作
 
 ## CI/CD 集成
 
@@ -895,13 +661,6 @@ jobs:
     strategy:
       matrix:
         python-version: [3.12]
-
-    services:
-      # 如果需要数据库等服务
-      # redis:
-      #   image: redis:6
-      #   ports:
-      #     - 6379:6379
 
     steps:
       - uses: actions/checkout@v3
@@ -942,42 +701,32 @@ jobs:
           file: ./coverage.xml
 ```
 
-### 测试覆盖率配置
+## 故障排除
 
-```yaml
-# .github/workflows/coverage.yml
-name: Coverage Report
+### 常见问题
 
-on:
-  push:
-    branches: [main]
+1. **导入错误**: 确保在测试中正确设置 Python 路径
+2. **AsyncMock 问题**: 检查异步方法是否正确 mock
+3. **临时文件清理**: 使用 pytest 的 tmp_path fixture 自动清理
+4. **覆盖率不正确**: 检查 cov 配置是否包含正确的路径
 
-jobs:
-  coverage:
-    runs-on: ubuntu-latest
+### 调试技巧
 
-    steps:
-      - uses: actions/checkout@v3
+```bash
+# 显示详细的测试输出
+pytest -v -s tests/agents
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.12
+# 只运行失败的测试
+pytest --lf
 
-      - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
+# 在第一个失败时停止
+pytest -x
 
-      - name: Run tests with coverage
-        run: |
-          pytest --cov=agents --cov=api --cov=core \
-                 --cov-report=xml --cov-report=html
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+# 显示本地变量
+pytest --tb=long
 ```
 
-## 测试最佳实践
+## 最佳实践
 
 ### 1. 测试命名
 
@@ -1045,14 +794,23 @@ async def test_async_operation(self):
     assert result
 ```
 
+### 6. 核心原则
+
+1. **测试隔离**: 每个测试使用独立的临时目录和数据
+2. **Mock 使用**: 对外部依赖使用 Mock 避免实际调用
+3. **异步测试**: 使用 `pytest-asyncio` 处理异步代码
+4. **覆盖率目标**: 保持 >80% 的代码覆盖率
+5. **清晰命名**: 测试名称应该清楚描述测试的场景和期望
+
+## 添加新测试
+
+1. 单元测试放在 `tests/agents/unit/` 对应模块下
+2. 集成测试放在 `tests/agents/integration/`
+3. 使用现有的 fixtures 和 mocks
+4. 确保测试标记正确（unit, integration 等）
+5. 运行所有测试确保没有破坏现有功能
+
 ## 持续改进
-
-### 测试指标
-
-- 代码覆盖率目标：> 80%
-- 单元测试比例：> 70%
-- 测试执行时间：< 5 分钟
-- 测试稳定性：> 95%
 
 ### 测试审查清单
 
