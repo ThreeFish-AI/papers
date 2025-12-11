@@ -41,8 +41,11 @@ pip install -e ".[dev]"
 ### 运行所有测试
 
 ```bash
-# 使用项目提供的测试脚本
+# 使用项目提供的测试脚本 (从tests/agents目录)
 python run_tests.py
+
+# 或者从项目根目录运行
+python tests/agents/run_tests.py
 
 # 或者直接使用pytest
 pytest tests/agents -v
