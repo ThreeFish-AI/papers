@@ -52,6 +52,116 @@ agentic-ai-papers/
 - 相关研究对比
 - 实践应用建议
 
+## 📋 工程实施计划方案
+
+### 📊 项目现状
+
+#### ✅ 已完成的核心功能
+
+1. **完整的 Claude Skills 生态系统** (7 个技能):
+
+   - `doc-translator`: 文档翻译工作流协调器
+   - `pdf-reader`: PDF 内容提取(支持图片/表格/公式)
+   - `web-translator`: 网页内容提取和转换
+   - `zh-translator`: 中文翻译(保持格式)
+   - `markdown-formatter`: Markdown 格式优化
+   - `batch-processor`: 大文档批处理
+   - `heartfelt`: 深度阅读和摘要生成
+
+2. **丰富的论文库**:
+   - 20+ 篇分类整理的 PDF 论文
+   - 15+ 篇已完成中文翻译
+   - 清晰的目录结构 (source/, translation/, heartfelt/, images/)
+
+#### ❌ 需要优化的部分
+
+1. **过度设计的全栈基础设施**: PostgreSQL, Redis, MinIO, Celery 等重型组件
+2. **空目录结构**: UI 工作空间未实现，agent 目录仅有 README
+
+### 🎯 精简实施策略
+
+**核心理念**: 利用现有的 Claude Skills 生态，构建轻量级管理界面，避免过度工程化。
+
+```mermaid
+flowchart LR
+    A[Web界面<br/>单页面应用] --> B[Flask API<br/>轻量级后端]
+    B --> C[论文管理器]
+    B --> D[Claude CLI集成]
+    D --> E[Claude Skills生态]
+    C --> F[文件系统<br/>papers目录]
+
+    classDef ui fill:#4CAF50,stroke:#388E3C,color:#fff
+    classDef api fill:#2196F3,stroke:#1976D2,color:#fff
+    classDef storage fill:#FF9800,stroke:#F57C00,color:#fff
+    classDef skills fill:#9C27B0,stroke:#7B1FA2,color:#fff
+
+    class A ui
+    class B,C,D api
+    class F storage
+    class E skills
+```
+
+### 🚀 基于 Claude Agent SDK 的实施阶段
+
+#### Phase 1: Agent SDK 服务架构 (2.5 小时)
+
+- 创建基于 Claude Agent SDK 的 Agent 服务
+- 封装现有 Skills 为标准化 Agent
+- 实现异步处理架构
+
+#### Phase 2: FastAPI 服务实现 (1.5 小时)
+
+- 构建轻量级 API 服务
+- 实现论文和任务管理接口
+- 集成 Agent SDK 调用
+
+#### Phase 3: 简化 Web 界面 (可选，1 小时)
+
+- 创建单页面应用（可选）
+- 实现文件上传和进度展示
+- 集成 API 调用
+
+#### Phase 4: 极简部署配置 (30 分钟)
+
+- 移除重型基础设施 (PostgreSQL, Redis, MinIO, Celery)
+- 更新 docker-compose.yml 为单服务
+- 创建最小化 Dockerfile
+
+#### Phase 5: Agent 自动化工作流 (1 小时)
+
+- 实现工作流协调 Agent
+- 创建文件监控和自动处理
+- 集成批处理和深度分析功能
+
+### 📁 关键实施文件
+
+**需要创建：**
+
+1. **`/agents/claude/base.py`** - Agent SDK 基础类
+2. **`/agents/claude/workflow_agent.py`** - 工作流协调 Agent
+3. **`/agents/claude/pdf_agent.py`** - PDF 处理 Agent
+4. **`/agents/claude/translation_agent.py`** - 翻译 Agent
+5. **`/api/main.py`** - FastAPI 应用入口
+6. **`/api/routes/papers.py`** - 论文管理接口
+7. **`/api/services/paper_service.py`** - 业务逻辑层
+8. **`Dockerfile`** - 应用容器化
+
+**需要修改：**
+
+1. **`pyproject.toml`** - 简化依赖，添加 claude-agent-sdk
+2. **`docker-compose.yml`** - 精简服务配置
+3. **`README.md`** - 更新部署和使用说明
+
+### ✅ 优化后的优势
+
+- **标准化架构**: 基于 Claude Agent SDK 的标准化 Agent 实现
+- **异步处理**: 全异步架构，提高并发处理能力
+- **清晰分层**: Agent -> Service -> API 的清晰分层
+- **极简部署**: 单一 API 服务 + 可选 UI
+- **易于扩展**: 每个 skill 对应一个 Agent，易于独立开发和测试
+
+_完整实施计划详见: [工程实施计划详细方案](.claude/plans/joyful-mapping-gosling.md)_
+
 ## 🚀 快速开始
 
 ### 环境要求
