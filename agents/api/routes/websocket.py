@@ -11,11 +11,14 @@ from agents.api.services.websocket_service import WebSocketService
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 # WebSocket 连接管理器
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
-        self.client_subscriptions: Dict[str, Set[str]] = {}  # client_id -> set of task_ids
+        self.client_subscriptions: Dict[
+            str, Set[str]
+        ] = {}  # client_id -> set of task_ids
 
     async def connect(self, websocket: WebSocket, client_id: str):
         """接受 WebSocket 连接."""
@@ -83,29 +86,34 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 if task_id:
                     await manager.subscribe(client_id, task_id)
                     # 发送订阅确认
-                    await manager.send_personal_message({
-                        "type": "subscription_confirmed",
-                        "task_id": task_id,
-                        "timestamp": datetime.now().isoformat()
-                    }, client_id)
+                    await manager.send_personal_message(
+                        {
+                            "type": "subscription_confirmed",
+                            "task_id": task_id,
+                            "timestamp": datetime.now().isoformat(),
+                        },
+                        client_id,
+                    )
 
             elif message_type == "unsubscribe":
                 task_id = message.get("task_id")
                 if task_id:
                     await manager.unsubscribe(client_id, task_id)
                     # 发送取消订阅确认
-                    await manager.send_personal_message({
-                        "type": "unsubscription_confirmed",
-                        "task_id": task_id,
-                        "timestamp": datetime.now().isoformat()
-                    }, client_id)
+                    await manager.send_personal_message(
+                        {
+                            "type": "unsubscription_confirmed",
+                            "task_id": task_id,
+                            "timestamp": datetime.now().isoformat(),
+                        },
+                        client_id,
+                    )
 
             elif message_type == "ping":
                 # 心跳检测
-                await manager.send_personal_message({
-                    "type": "pong",
-                    "timestamp": datetime.now().isoformat()
-                }, client_id)
+                await manager.send_personal_message(
+                    {"type": "pong", "timestamp": datetime.now().isoformat()}, client_id
+                )
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)
@@ -121,7 +129,9 @@ async def get_websocket_service() -> WebSocketService:
 
 
 # 发送任务更新的辅助函数
-async def send_task_update(task_id: str, status: str, progress: float = None, message: str = None):
+async def send_task_update(
+    task_id: str, status: str, progress: float = None, message: str = None
+):
     """发送任务更新给所有订阅者."""
     update_message = {
         "type": "task_update",
@@ -129,7 +139,7 @@ async def send_task_update(task_id: str, status: str, progress: float = None, me
         "status": status,
         "progress": progress,
         "message": message,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
     await manager.broadcast_to_subscribers(update_message, task_id)
 
@@ -143,13 +153,15 @@ async def send_task_completion(task_id: str, result: dict = None, error: str = N
         "success": error is None,
         "result": result,
         "error": error,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
     await manager.broadcast_to_subscribers(completion_message, task_id)
 
 
 # 发送批处理进度更新
-async def send_batch_progress(batch_id: str, total: int, processed: int, current_file: str = None):
+async def send_batch_progress(
+    batch_id: str, total: int, processed: int, current_file: str = None
+):
     """发送批处理进度更新."""
     progress_message = {
         "type": "batch_progress",
@@ -158,7 +170,7 @@ async def send_batch_progress(batch_id: str, total: int, processed: int, current
         "processed": processed,
         "progress": processed / total * 100,
         "current_file": current_file,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
     # 向所有连接的客户端发送批处理更新

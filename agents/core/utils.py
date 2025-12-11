@@ -27,7 +27,7 @@ def generate_paper_id(filename: str, category: str) -> str:
     name_without_ext = Path(safe_filename).stem
 
     # 生成时间戳
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # 生成唯一标识符
     unique_id = str(uuid.uuid4())[:8]
@@ -48,12 +48,12 @@ def sanitize_filename(filename: str) -> str:
     filename = os.path.basename(filename)
 
     # 替换不安全字符
-    filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+    filename = re.sub(r'[<>:"/\\|?*]', "_", filename)
 
     # 限制长度
     if len(filename) > 255:
         name, ext = os.path.splitext(filename)
-        filename = name[:255-len(ext)] + ext
+        filename = name[: 255 - len(ext)] + ext
 
     return filename
 
@@ -83,7 +83,7 @@ def format_file_size(size_bytes: int) -> str:
     Returns:
         格式化的大小字符串
     """
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
         if size_bytes < 1024.0:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
@@ -104,7 +104,7 @@ def extract_text_summary(text: str, max_length: int = 200) -> str:
         return text
 
     # 尝试在句子边界截断
-    sentences = re.split(r'[.!?]+', text)
+    sentences = re.split(r"[.!?]+", text)
     summary = ""
 
     for sentence in sentences:
@@ -115,7 +115,7 @@ def extract_text_summary(text: str, max_length: int = 200) -> str:
 
     if not summary or len(summary) < max_length * 0.5:
         # 如果摘要太短，直接截断
-        summary = text[:max_length-3] + "..."
+        summary = text[: max_length - 3] + "..."
     else:
         summary = summary.strip()
 
@@ -131,12 +131,7 @@ def validate_pdf_file(file_path: str) -> Dict[str, Any]:
     Returns:
         验证结果
     """
-    result = {
-        "valid": False,
-        "error": None,
-        "size": 0,
-        "pages": 0
-    }
+    result = {"valid": False, "error": None, "size": 0, "pages": 0}
 
     try:
         # 检查文件是否存在
@@ -145,7 +140,7 @@ def validate_pdf_file(file_path: str) -> Dict[str, Any]:
             return result
 
         # 检查文件扩展名
-        if not file_path.lower().endswith('.pdf'):
+        if not file_path.lower().endswith(".pdf"):
             result["error"] = "Not a PDF file"
             return result
 
@@ -155,7 +150,8 @@ def validate_pdf_file(file_path: str) -> Dict[str, Any]:
         # 尝试读取 PDF 文件信息
         try:
             import pypdf2
-            with open(file_path, 'rb') as f:
+
+            with open(file_path, "rb") as f:
                 pdf_reader = pypdf2.PdfReader(f)
                 result["pages"] = len(pdf_reader.pages)
         except Exception as e:
@@ -188,7 +184,7 @@ def get_category_from_path(file_path: str) -> str:
         "knowledge-graphs": ["knowledge", "graph", "ontology", "semantic"],
         "multi-agent": ["multi-agent", "swarm", "collective", "distributed"],
         "reasoning": ["reasoning", "inference", "logic", "deduction"],
-        "planning": ["planning", "strategy", "goal", "hierarchical"]
+        "planning": ["planning", "strategy", "goal", "hierarchical"],
     }
 
     # 从路径中提取
@@ -229,11 +225,11 @@ def get_task_status_color(status: str) -> str:
         颜色代码
     """
     color_map = {
-        "pending": "#6c757d",      # gray
-        "processing": "#007bff",   # blue
-        "completed": "#28a745",    # green
-        "failed": "#dc3545",       # red
-        "cancelled": "#ffc107",    # yellow
+        "pending": "#6c757d",  # gray
+        "processing": "#007bff",  # blue
+        "completed": "#28a745",  # green
+        "failed": "#dc3545",  # red
+        "cancelled": "#ffc107",  # yellow
     }
     return color_map.get(status, "#6c757d")
 
@@ -254,7 +250,9 @@ def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def flatten_dict(d: Dict[str, Any], parent_key: str = '', sep: str = '.') -> Dict[str, Any]:
+def flatten_dict(
+    d: Dict[str, Any], parent_key: str = "", sep: str = "."
+) -> Dict[str, Any]:
     """扁平化字典.
 
     Args:
@@ -282,6 +280,7 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
         max_retries: 最大重试次数
         delay: 重试延迟（秒）
     """
+
     def decorator(func):
         async def wrapper(*args, **kwargs):
             last_error = None
@@ -291,10 +290,14 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
                 except Exception as e:
                     last_error = e
                     if attempt < max_retries:
-                        logger.warning(f"Attempt {attempt + 1} failed, retrying... Error: {str(e)}")
-                        await asyncio.sleep(delay * (2 ** attempt))  # 指数退避
+                        logger.warning(
+                            f"Attempt {attempt + 1} failed, retrying... Error: {str(e)}"
+                        )
+                        await asyncio.sleep(delay * (2**attempt))  # 指数退避
                     else:
                         logger.error(f"All {max_retries + 1} attempts failed")
             raise last_error
+
         return wrapper
+
     return decorator

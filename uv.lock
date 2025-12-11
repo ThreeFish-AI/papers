@@ -27,6 +27,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "rich" },
+    { name = "ruff" },
     { name = "tqdm" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -83,6 +84,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "rich", specifier = ">=13.7.0" },
+    { name = "ruff", specifier = ">=0.14.8" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.0.280" },
     { name = "sentence-transformers", marker = "extra == 'gpu'", specifier = ">=2.2.0" },
     { name = "torch", marker = "extra == 'gpu'", specifier = ">=2.0.0" },

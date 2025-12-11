@@ -46,11 +46,13 @@ class BatchProcessingAgent(BaseAgent):
         if not files:
             return {"success": False, "error": "No files provided"}
 
-        return await self.batch_process({
-            "files": files,
-            "workflow": workflow,
-            "options": options,
-        })
+        return await self.batch_process(
+            {
+                "files": files,
+                "workflow": workflow,
+                "options": options,
+            }
+        )
 
     async def batch_process(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """批量处理文档.
@@ -75,7 +77,9 @@ class BatchProcessingAgent(BaseAgent):
         logger.info(f"Starting batch processing for {len(valid_files['files'])} files")
 
         # 创建批次
-        batches = self._create_batches(valid_files["files"], options.get("batch_size", 10))
+        batches = self._create_batches(
+            valid_files["files"], options.get("batch_size", 10)
+        )
 
         # 处理所有批次
         all_results = []
@@ -83,33 +87,35 @@ class BatchProcessingAgent(BaseAgent):
         processed_files = 0
 
         for i, batch in enumerate(batches):
-            logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} files")
+            logger.info(
+                f"Processing batch {i + 1}/{len(batches)} with {len(batch)} files"
+            )
 
             # 处理当前批次
-            batch_results = await self._process_batch(
-                batch,
-                workflow,
-                options
-            )
+            batch_results = await self._process_batch(batch, workflow, options)
 
             all_results.extend(batch_results)
             processed_files += len(batch)
 
             # 调用进度回调
             if options.get("progress_callback"):
-                await options["progress_callback"]({
-                    "total": total_files,
-                    "processed": processed_files,
-                    "current_batch": i + 1,
-                    "total_batches": len(batches),
-                    "progress": processed_files / total_files * 100,
-                })
+                await options["progress_callback"](
+                    {
+                        "total": total_files,
+                        "processed": processed_files,
+                        "current_batch": i + 1,
+                        "total_batches": len(batches),
+                        "progress": processed_files / total_files * 100,
+                    }
+                )
 
         # 统计结果
         end_time = datetime.now()
         stats = self._calculate_stats(all_results, start_time, end_time)
 
-        logger.info(f"Batch processing completed: {stats['successful']}/{stats['total']} successful")
+        logger.info(
+            f"Batch processing completed: {stats['successful']}/{stats['total']} successful"
+        )
 
         return {
             "success": True,
@@ -132,7 +138,7 @@ class BatchProcessingAgent(BaseAgent):
         for file_path in files:
             if not os.path.exists(file_path):
                 invalid_files.append({"path": file_path, "error": "File not found"})
-            elif not file_path.lower().endswith('.pdf'):
+            elif not file_path.lower().endswith(".pdf"):
                 invalid_files.append({"path": file_path, "error": "Not a PDF file"})
             else:
                 valid_files.append(file_path)
@@ -155,12 +161,14 @@ class BatchProcessingAgent(BaseAgent):
         """
         batches = []
         for i in range(0, len(files), batch_size):
-            batch = files[i:i + batch_size]
+            batch = files[i : i + batch_size]
             batches.append(batch)
 
         return batches
 
-    async def _process_batch(self, files: List[str], workflow: str, options: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _process_batch(
+        self, files: List[str], workflow: str, options: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """处理单个批次.
 
         Args:
@@ -195,17 +203,21 @@ class BatchProcessingAgent(BaseAgent):
         processed_results = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                processed_results.append({
-                    "file_path": files[i],
-                    "success": False,
-                    "error": str(result),
-                })
+                processed_results.append(
+                    {
+                        "file_path": files[i],
+                        "success": False,
+                        "error": str(result),
+                    }
+                )
             else:
                 processed_results.append(result)
 
         return processed_results
 
-    async def _process_single_file(self, file_path: str, workflow: str, retry_count: int) -> Dict[str, Any]:
+    async def _process_single_file(
+        self, file_path: str, workflow: str, retry_count: int
+    ) -> Dict[str, Any]:
         """处理单个文件，支持重试.
 
         Args:
@@ -223,17 +235,22 @@ class BatchProcessingAgent(BaseAgent):
                 # 生成 paper_id
                 file_name = os.path.splitext(os.path.basename(file_path))[0]
                 category = self._get_category_from_path(file_path)
-                paper_id = f"{category}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_name}"
+                paper_id = (
+                    f"{category}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_name}"
+                )
 
                 # 调用 WorkflowAgent 处理
                 from .workflow_agent import WorkflowAgent
+
                 workflow_agent = WorkflowAgent({"papers_dir": str(self.papers_dir)})
 
-                result = await workflow_agent.process({
-                    "source_path": file_path,
-                    "workflow": workflow,
-                    "paper_id": paper_id,
-                })
+                result = await workflow_agent.process(
+                    {
+                        "source_path": file_path,
+                        "workflow": workflow,
+                        "paper_id": paper_id,
+                    }
+                )
 
                 if result["success"]:
                     return {
@@ -249,11 +266,13 @@ class BatchProcessingAgent(BaseAgent):
 
             except Exception as e:
                 last_error = str(e)
-                logger.error(f"Error processing {file_path} (attempt {attempt + 1}): {last_error}")
+                logger.error(
+                    f"Error processing {file_path} (attempt {attempt + 1}): {last_error}"
+                )
 
                 if attempt < retry_count:
                     # 等待后重试
-                    await asyncio.sleep(2 ** attempt)  # 指数退避
+                    await asyncio.sleep(2**attempt)  # 指数退避
 
         return {
             "file_path": file_path,
@@ -275,8 +294,14 @@ class BatchProcessingAgent(BaseAgent):
         path_parts = Path(file_path).parts
 
         # 查找可能的分类目录
-        category_keywords = ["llm-agents", "context-engineering", "knowledge-graphs",
-                           "multi-agent", "reasoning", "planning"]
+        category_keywords = [
+            "llm-agents",
+            "context-engineering",
+            "knowledge-graphs",
+            "multi-agent",
+            "reasoning",
+            "planning",
+        ]
 
         for part in path_parts:
             part_lower = part.lower()
@@ -287,7 +312,9 @@ class BatchProcessingAgent(BaseAgent):
         # 默认分类
         return "general"
 
-    def _calculate_stats(self, results: List[Dict[str, Any]], start_time: datetime, end_time: datetime) -> Dict[str, Any]:
+    def _calculate_stats(
+        self, results: List[Dict[str, Any]], start_time: datetime, end_time: datetime
+    ) -> Dict[str, Any]:
         """计算处理统计信息.
 
         Args:

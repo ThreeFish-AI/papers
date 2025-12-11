@@ -23,7 +23,7 @@ class PDFProcessingAgent(BaseAgent):
             "extract_images": True,
             "extract_tables": True,
             "extract_formulas": True,
-            "output_format": "markdown"
+            "output_format": "markdown",
         }
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -85,22 +85,24 @@ class PDFProcessingAgent(BaseAgent):
                 # 处理图片路径
                 if options.get("extract_images") and "images" in result["data"]:
                     result["data"]["images"] = self._process_images(
-                        result["data"]["images"],
-                        file_path,
-                        options.get("paper_id")
+                        result["data"]["images"], file_path, options.get("paper_id")
                     )
 
                 return {
                     "success": True,
                     "data": {
-                        "content": result["data"].get("markdown", result["data"].get("content", "")),
+                        "content": result["data"].get(
+                            "markdown", result["data"].get("content", "")
+                        ),
                         "metadata": metadata,
                         "images": result["data"].get("images", []),
                         "tables": result["data"].get("tables", []),
                         "formulas": result["data"].get("formulas", []),
                         "page_count": result["data"].get("page_count", 0),
-                        "word_count": self._count_words(result["data"].get("content", ""))
-                    }
+                        "word_count": self._count_words(
+                            result["data"].get("content", "")
+                        ),
+                    },
                 }
             else:
                 return result
@@ -109,7 +111,9 @@ class PDFProcessingAgent(BaseAgent):
             logger.error(f"Error extracting PDF content: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def batch_extract(self, file_paths: list, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def batch_extract(
+        self, file_paths: list, options: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """批量提取 PDF 内容.
 
         Args:
@@ -121,17 +125,25 @@ class PDFProcessingAgent(BaseAgent):
         """
         calls = []
         for file_path in file_paths:
-            calls.append({
-                "skill": "pdf-reader",
-                "params": {
-                    "pdf_source": file_path,
-                    "method": options.get("method", "auto") if options else "auto",
-                    "include_metadata": True,
-                    "extract_images": options.get("extract_images", True) if options else True,
-                    "extract_tables": options.get("extract_tables", True) if options else True,
-                    "extract_formulas": options.get("extract_formulas", True) if options else True,
+            calls.append(
+                {
+                    "skill": "pdf-reader",
+                    "params": {
+                        "pdf_source": file_path,
+                        "method": options.get("method", "auto") if options else "auto",
+                        "include_metadata": True,
+                        "extract_images": options.get("extract_images", True)
+                        if options
+                        else True,
+                        "extract_tables": options.get("extract_tables", True)
+                        if options
+                        else True,
+                        "extract_formulas": options.get("extract_formulas", True)
+                        if options
+                        else True,
+                    },
                 }
-            })
+            )
 
         results = await self.batch_call_skill(calls)
 
@@ -139,23 +151,25 @@ class PDFProcessingAgent(BaseAgent):
         processed_results = []
         for i, result in enumerate(results):
             if isinstance(result, dict) and result.get("success"):
-                processed_results.append({
-                    "file_path": file_paths[i],
-                    "success": True,
-                    "data": result["data"]
-                })
+                processed_results.append(
+                    {
+                        "file_path": file_paths[i],
+                        "success": True,
+                        "data": result["data"],
+                    }
+                )
             else:
-                processed_results.append({
-                    "file_path": file_paths[i],
-                    "success": False,
-                    "error": str(result) if not isinstance(result, dict) else result.get("error")
-                })
+                processed_results.append(
+                    {
+                        "file_path": file_paths[i],
+                        "success": False,
+                        "error": str(result)
+                        if not isinstance(result, dict)
+                        else result.get("error"),
+                    }
+                )
 
-        return {
-            "success": True,
-            "total": len(file_paths),
-            "results": processed_results
-        }
+        return {"success": True, "total": len(file_paths), "results": processed_results}
 
     def _extract_metadata(self, data: Dict[str, Any], file_path: str) -> Dict[str, Any]:
         """提取 PDF 元数据.
@@ -176,14 +190,16 @@ class PDFProcessingAgent(BaseAgent):
         # 从 PDF 数据中提取元数据
         if "metadata" in data:
             pdf_metadata = data["metadata"]
-            metadata.update({
-                "title": pdf_metadata.get("title", ""),
-                "author": pdf_metadata.get("author", ""),
-                "creator": pdf_metadata.get("creator", ""),
-                "producer": pdf_metadata.get("producer", ""),
-                "creation_date": pdf_metadata.get("creation_date", ""),
-                "modification_date": pdf_metadata.get("modification_date", ""),
-            })
+            metadata.update(
+                {
+                    "title": pdf_metadata.get("title", ""),
+                    "author": pdf_metadata.get("author", ""),
+                    "creator": pdf_metadata.get("creator", ""),
+                    "producer": pdf_metadata.get("producer", ""),
+                    "creation_date": pdf_metadata.get("creation_date", ""),
+                    "modification_date": pdf_metadata.get("modification_date", ""),
+                }
+            )
 
         # 添加统计信息
         metadata["page_count"] = data.get("page_count", 0)
@@ -194,7 +210,9 @@ class PDFProcessingAgent(BaseAgent):
 
         return metadata
 
-    def _process_images(self, images: list, pdf_path: str, paper_id: Optional[str] = None) -> list:
+    def _process_images(
+        self, images: list, pdf_path: str, paper_id: Optional[str] = None
+    ) -> list:
         """处理提取的图片信息.
 
         Args:
@@ -222,7 +240,11 @@ class PDFProcessingAgent(BaseAgent):
                 processed_img["embedded"] = True
             else:
                 # 生成图片文件名
-                category = paper_id.split("_")[0] if paper_id and "_" in paper_id else "general"
+                category = (
+                    paper_id.split("_")[0]
+                    if paper_id and "_" in paper_id
+                    else "general"
+                )
                 pdf_name = os.path.splitext(os.path.basename(pdf_path))[0]
                 img_filename = f"{pdf_name}_p{img.get('page', 0)}_{img.get('index', 0)}.{img.get('format', 'png')}"
                 img_path = f"images/{category}/{img_filename}"
@@ -263,7 +285,7 @@ class PDFProcessingAgent(BaseAgent):
         if not os.path.exists(file_path):
             return {"valid": False, "error": "File does not exist"}
 
-        if not file_path.lower().endswith('.pdf'):
+        if not file_path.lower().endswith(".pdf"):
             return {"valid": False, "error": "Not a PDF file"}
 
         file_size = os.path.getsize(file_path)
@@ -274,5 +296,5 @@ class PDFProcessingAgent(BaseAgent):
         return {
             "valid": True,
             "file_size": file_size,
-            "file_name": os.path.basename(file_path)
+            "file_name": os.path.basename(file_path),
         }

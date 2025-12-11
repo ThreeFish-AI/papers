@@ -65,7 +65,9 @@ class WorkflowAgent(BaseAgent):
             logger.error(f"Error in workflow processing: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def _full_workflow(self, source_path: str, paper_id: Optional[str] = None) -> Dict[str, Any]:
+    async def _full_workflow(
+        self, source_path: str, paper_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """完整处理流程：提取 -> 翻译 -> 分析.
 
         Args:
@@ -78,24 +80,28 @@ class WorkflowAgent(BaseAgent):
         logger.info(f"Starting full workflow for {source_path}")
 
         # 1. 内容提取
-        extract_result = await self.pdf_agent.extract_content({
-            "file_path": source_path,
-            "options": {
-                "extract_images": True,
-                "extract_tables": True,
-                "extract_formulas": True
+        extract_result = await self.pdf_agent.extract_content(
+            {
+                "file_path": source_path,
+                "options": {
+                    "extract_images": True,
+                    "extract_tables": True,
+                    "extract_formulas": True,
+                },
             }
-        })
+        )
 
         if not extract_result["success"]:
             return extract_result
 
         # 2. 翻译
-        translate_result = await self.translation_agent.translate({
-            "content": extract_result["data"]["content"],
-            "preserve_format": True,
-            "paper_id": paper_id
-        })
+        translate_result = await self.translation_agent.translate(
+            {
+                "content": extract_result["data"]["content"],
+                "preserve_format": True,
+                "paper_id": paper_id,
+            }
+        )
 
         # 3. 深度分析（异步，不阻塞返回）
         asyncio.create_task(
@@ -103,23 +109,27 @@ class WorkflowAgent(BaseAgent):
                 source_path,
                 extract_result["data"],
                 translate_result.get("data"),
-                paper_id
+                paper_id,
             )
         )
 
         # 4. 保存结果
         if paper_id:
-            await self._save_workflow_results(paper_id, extract_result, translate_result)
+            await self._save_workflow_results(
+                paper_id, extract_result, translate_result
+            )
 
         return {
             "success": True,
             "extract_result": extract_result["data"],
             "translate_result": translate_result.get("data"),
             "status": "completed",
-            "workflow": "full"
+            "workflow": "full",
         }
 
-    async def _extract_workflow(self, source_path: str, paper_id: Optional[str] = None) -> Dict[str, Any]:
+    async def _extract_workflow(
+        self, source_path: str, paper_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """仅提取内容流程.
 
         Args:
@@ -131,14 +141,16 @@ class WorkflowAgent(BaseAgent):
         """
         logger.info(f"Starting extract workflow for {source_path}")
 
-        result = await self.pdf_agent.extract_content({
-            "file_path": source_path,
-            "options": {
-                "extract_images": True,
-                "extract_tables": True,
-                "extract_formulas": True
+        result = await self.pdf_agent.extract_content(
+            {
+                "file_path": source_path,
+                "options": {
+                    "extract_images": True,
+                    "extract_tables": True,
+                    "extract_formulas": True,
+                },
             }
-        })
+        )
 
         if result["success"] and paper_id:
             await self._save_extract_result(paper_id, result["data"])
@@ -147,10 +159,12 @@ class WorkflowAgent(BaseAgent):
             "success": result["success"],
             "data": result.get("data"),
             "status": "completed" if result["success"] else "failed",
-            "workflow": "extract_only"
+            "workflow": "extract_only",
         }
 
-    async def _translate_workflow(self, source_path: str, paper_id: Optional[str] = None) -> Dict[str, Any]:
+    async def _translate_workflow(
+        self, source_path: str, paper_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """仅翻译流程.
 
         Args:
@@ -163,20 +177,21 @@ class WorkflowAgent(BaseAgent):
         logger.info(f"Starting translate workflow for {source_path}")
 
         # 首先提取内容
-        extract_result = await self.pdf_agent.extract_content({
-            "file_path": source_path,
-            "options": {"extract_images": False}
-        })
+        extract_result = await self.pdf_agent.extract_content(
+            {"file_path": source_path, "options": {"extract_images": False}}
+        )
 
         if not extract_result["success"]:
             return extract_result
 
         # 然后翻译
-        translate_result = await self.translation_agent.translate({
-            "content": extract_result["data"]["content"],
-            "preserve_format": True,
-            "paper_id": paper_id
-        })
+        translate_result = await self.translation_agent.translate(
+            {
+                "content": extract_result["data"]["content"],
+                "preserve_format": True,
+                "paper_id": paper_id,
+            }
+        )
 
         if translate_result["success"] and paper_id:
             await self._save_translate_result(paper_id, translate_result["data"])
@@ -185,10 +200,12 @@ class WorkflowAgent(BaseAgent):
             "success": translate_result["success"],
             "data": translate_result.get("data"),
             "status": "completed" if translate_result["success"] else "failed",
-            "workflow": "translate_only"
+            "workflow": "translate_only",
         }
 
-    async def _heartfelt_workflow(self, source_path: str, paper_id: Optional[str] = None) -> Dict[str, Any]:
+    async def _heartfelt_workflow(
+        self, source_path: str, paper_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """仅深度分析流程.
 
         Args:
@@ -201,19 +218,17 @@ class WorkflowAgent(BaseAgent):
         logger.info(f"Starting heartfelt workflow for {source_path}")
 
         # 首先提取内容
-        extract_result = await self.pdf_agent.extract_content({
-            "file_path": source_path,
-            "options": {"extract_images": False}
-        })
+        extract_result = await self.pdf_agent.extract_content(
+            {"file_path": source_path, "options": {"extract_images": False}}
+        )
 
         if not extract_result["success"]:
             return extract_result
 
         # 进行深度分析
-        heartfelt_result = await self.heartfelt_agent.analyze({
-            "content": extract_result["data"]["content"],
-            "paper_id": paper_id
-        })
+        heartfelt_result = await self.heartfelt_agent.analyze(
+            {"content": extract_result["data"]["content"], "paper_id": paper_id}
+        )
 
         if heartfelt_result["success"] and paper_id:
             await self._save_heartfelt_result(paper_id, heartfelt_result["data"])
@@ -222,7 +237,7 @@ class WorkflowAgent(BaseAgent):
             "success": heartfelt_result["success"],
             "data": heartfelt_result.get("data"),
             "status": "completed" if heartfelt_result["success"] else "failed",
-            "workflow": "heartfelt_only"
+            "workflow": "heartfelt_only",
         }
 
     async def _async_heartfelt_analysis(
@@ -230,7 +245,7 @@ class WorkflowAgent(BaseAgent):
         source_path: str,
         extract_data: Dict[str, Any],
         translate_data: Optional[Dict[str, Any]],
-        paper_id: Optional[str] = None
+        paper_id: Optional[str] = None,
     ):
         """异步进行深度分析.
 
@@ -241,11 +256,15 @@ class WorkflowAgent(BaseAgent):
             paper_id: 论文ID
         """
         try:
-            result = await self.heartfelt_agent.analyze({
-                "content": extract_data["content"],
-                "translation": translate_data.get("content") if translate_data else None,
-                "paper_id": paper_id
-            })
+            result = await self.heartfelt_agent.analyze(
+                {
+                    "content": extract_data["content"],
+                    "translation": translate_data.get("content")
+                    if translate_data
+                    else None,
+                    "paper_id": paper_id,
+                }
+            )
 
             if result["success"] and paper_id:
                 await self._save_heartfelt_result(paper_id, result["data"])
@@ -258,7 +277,7 @@ class WorkflowAgent(BaseAgent):
         self,
         paper_id: str,
         extract_result: Dict[str, Any],
-        translate_result: Dict[str, Any]
+        translate_result: Dict[str, Any],
     ):
         """保存工作流结果.
 
@@ -344,10 +363,7 @@ class WorkflowAgent(BaseAgent):
 
         tasks = []
         for doc_path in documents:
-            task = self.process({
-                "source_path": doc_path,
-                "workflow": "full"
-            })
+            task = self.process({"source_path": doc_path, "workflow": "full"})
             tasks.append(task)
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -361,5 +377,5 @@ class WorkflowAgent(BaseAgent):
             "total": len(documents),
             "successful": successful,
             "failed": failed,
-            "results": results
+            "results": results,
         }

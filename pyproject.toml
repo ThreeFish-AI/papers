@@ -26,29 +26,24 @@ dependencies = [
     # Core dependencies
     "anthropic>=0.7.0",
     "claude-agent-sdk>=0.1.0",
-
     # FastAPI server
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
     "python-multipart>=0.0.6",
-
     # File handling
     "aiofiles>=23.2.1",
     "httpx>=0.25.0",
-
     # PDF processing (via MCP tools)
     # These are for local fallback if MCP tools are not available
     "pypdf2>=3.0.1",
     "pdfplumber>=0.10.0",
     "python-magic>=0.4.27",
     "pillow>=10.1.0",
-
     # Content processing
     "markdown>=3.5.0",
     "beautifulsoup4>=4.12.0",
     "lxml>=4.9.0",
-
     # Configuration and utilities
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0.1",
@@ -56,9 +51,9 @@ dependencies = [
     "tqdm>=4.66.0",
     "click>=8.1.0",
     "jinja2>=3.1.0",
-
     # Async support
     "asyncio-mqtt>=0.13.0",
+    "ruff>=0.14.8",
 ]
 
 [project.optional-dependencies]
