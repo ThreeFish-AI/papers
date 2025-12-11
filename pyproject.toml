@@ -93,7 +93,7 @@ Issues = "https://github.com/ThreeFish-AI/agentic-ai-papers/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agentic_ai_papers*"]
+include = ["agents*"]
 
 [tool.black]
 line-length = 88

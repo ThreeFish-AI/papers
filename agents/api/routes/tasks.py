@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from typing import Optional, List
 import logging
 
-from ..services.task_service import TaskService
-from ..models.task import TaskResponse, TaskListResponse
+from agents.api.services.task_service import TaskService
+from agents.api.models.task import TaskResponse, TaskListResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 
-from ..services.websocket_service import WebSocketService
+from agents.api.services.websocket_service import WebSocketService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
