@@ -8,10 +8,10 @@ from pathlib import Path
 from fastapi import UploadFile
 import logging
 
-from ..agents.workflow_agent import WorkflowAgent
-from ..agents.batch_agent import BatchProcessingAgent
-from ..agents.heartfelt_agent import HeartfeltAgent
-from ..core.config import settings
+from agents.claude.workflow_agent import WorkflowAgent
+from agents.claude.batch_agent import BatchProcessingAgent
+from agents.claude.heartfelt_agent import HeartfeltAgent
+from agents.core.config import settings
 
 logger = logging.getLogger(__name__)
 

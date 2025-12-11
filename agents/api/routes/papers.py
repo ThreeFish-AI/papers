@@ -4,8 +4,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query, 
 from typing import Optional, List
 import logging
 
-from ..services.paper_service import PaperService
-from ..models.paper import (
+from agents.api.services.paper_service import PaperService
+from agents.api.models.paper import (
     PaperUploadResponse,
     PaperProcessRequest,
     PaperStatus,

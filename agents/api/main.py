@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Agentic AI Papers API...")
     try:
         # 初始化服务
-        from .services.task_service import task_service
+        from agents.api.services.task_service import task_service
         await task_service.initialize()
         logger.info("Services initialized successfully")
     except Exception as e:
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     # 关闭时清理
     logger.info("Shutting down Agentic AI Papers API...")
     try:
-        from .services.task_service import task_service
+        from agents.api.services.task_service import task_service
         await task_service.cleanup()
         logger.info("Services cleanup completed")
     except Exception as e:
@@ -95,7 +95,7 @@ async def root():
 
 
 # 导入并注册路由
-from .routes import papers, tasks, websocket
+from agents.api.routes import papers, tasks, websocket
 
 app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
