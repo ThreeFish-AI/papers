@@ -1,7 +1,7 @@
 """WebSocket service for real-time communication."""
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,8 @@ class WebSocketService:
         self,
         task_id: str,
         status: str,
-        progress: Optional[float] = None,
-        message: Optional[str] = None,
+        progress: float | None = None,
+        message: str | None = None,
     ) -> None:
         """发送任务更新.
 
@@ -39,8 +39,8 @@ class WebSocketService:
     async def send_task_completion(
         self,
         task_id: str,
-        result: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
+        result: dict[str, Any] | None = None,
+        error: str | None = None,
     ) -> None:
         """发送任务完成通知.
 
@@ -58,7 +58,7 @@ class WebSocketService:
         batch_id: str,
         total: int,
         processed: int,
-        current_file: Optional[str] = None,
+        current_file: str | None = None,
     ) -> None:
         """发送批处理进度.
 
