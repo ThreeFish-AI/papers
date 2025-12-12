@@ -1,7 +1,6 @@
 """Unit tests for papers routes."""
 
 import io
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,8 +8,6 @@ from fastapi.testclient import TestClient
 from agents.api.main import app
 from agents.api.routes.papers import get_paper_service
 from tests.agents.fixtures.factories.paper_factory import (
-    PaperInfoFactory,
-    PaperStatusFactory,
     PaperUploadResponseFactory,
 )
 
