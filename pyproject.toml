@@ -119,6 +119,14 @@ extend-exclude = '''
 [tool.ruff]
 target-version = "py312"
 line-length = 88
+extend-exclude = [
+    "*.md",
+    "*.pdf",
+    "papers/",
+    "docs/",
+    ".github/",
+    "ui/",
+]
 
 [tool.ruff.lint]
 select = [
@@ -137,6 +145,18 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.ruff.format]
+exclude = [
+    "*.md",
+    "*.pdf",
+    "*.txt",
+    "*.json",
+    "*.yml",
+    "*.yaml",
+    "papers/",
+    "docs/",
+]
 
 [tool.mypy]
 python_version = "3.12"
