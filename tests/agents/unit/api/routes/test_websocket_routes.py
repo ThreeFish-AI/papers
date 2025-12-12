@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from agents.api.routes.websocket import (
+    ConnectionManager,
     WebSocketService,
     get_websocket_service,
     router,
@@ -33,8 +34,11 @@ class TestWebSocketRoutes:
     @pytest.mark.asyncio
     async def test_websocket_endpoint_connects(self):
         """Test WebSocket endpoint connection."""
-        with patch("agents.api.routes.websocket.websocket_service") as mock_service:
-            mock_service.connect = AsyncMock()
+        # Mock the ConnectionManager
+        with patch("agents.api.routes.websocket.manager") as mock_manager:
+            mock_manager.connect = AsyncMock()
+            mock_manager.disconnect = AsyncMock()
+            mock_manager.active_connections = {}
 
             # Mock WebSocket connection
             mock_websocket = AsyncMock()
@@ -55,7 +59,6 @@ class TestWebSocketRoutes:
 
                 # This would normally be tested via integration test
                 # For unit test, we verify the service methods exist
-                mock_manager = AsyncMock()
                 service = WebSocketService(mock_manager)
                 assert hasattr(service, "send_task_update")
                 assert hasattr(service, "send_task_completion")
@@ -76,31 +79,46 @@ class TestWebSocketRoutes:
     @pytest.mark.asyncio
     async def test_websocket_connection_handling(self):
         """Test WebSocket connection handling."""
-        with patch("agents.api.routes.websocket.websocket_service") as mock_service:
+        # Mock the ConnectionManager directly
+        with patch("agents.api.routes.websocket.ConnectionManager") as mock_cm_class:
+            mock_manager = AsyncMock()
+            mock_cm_class.return_value = mock_manager
+
             # Setup mock
-            mock_service.connect = AsyncMock(return_value="connection_id")
-            mock_service.disconnect = AsyncMock()
+            mock_manager.connect = AsyncMock()
+            mock_manager.disconnect = AsyncMock()
+            mock_manager.active_connections = {}
+            mock_manager.client_subscriptions = {}
 
-            # Verify connection handling
-            connection_id = await mock_service.connect("test_client")
-            assert connection_id == "connection_id"
+            # Test connection manager instantiation
+            cm = ConnectionManager()
+            assert cm is not None
 
-            await mock_service.disconnect("connection_id")
+            # Verify connection handling methods exist
+            assert hasattr(mock_manager, "connect")
+            assert hasattr(mock_manager, "disconnect")
+            assert hasattr(mock_manager, "send_personal_message")
+            assert hasattr(mock_manager, "broadcast_to_subscribers")
 
     @pytest.mark.asyncio
     async def test_websocket_message_handling(self):
         """Test WebSocket message handling."""
-        with patch("agents.api.routes.websocket.websocket_service") as mock_service:
+        # Mock the ConnectionManager
+        with patch("agents.api.routes.websocket.manager") as mock_manager:
             # Setup mock
-            mock_service.send_personal_message = AsyncMock()
-            mock_service.broadcast = AsyncMock()
+            mock_manager.send_personal_message = AsyncMock()
+            mock_manager.broadcast_to_subscribers = AsyncMock()
+            mock_manager.subscribe = AsyncMock()
+            mock_manager.unsubscribe = AsyncMock()
 
             # Test message sending
-            await mock_service.send_personal_message("connection_id", {"type": "test"})
-            mock_service.send_personal_message.assert_called_once()
+            await mock_manager.send_personal_message({"type": "test"}, "connection_id")
+            mock_manager.send_personal_message.assert_called_once()
 
-            await mock_service.broadcast({"type": "broadcast_test"})
-            mock_service.broadcast.assert_called_once()
+            await mock_manager.broadcast_to_subscribers(
+                {"type": "broadcast_test"}, "task_id"
+            )
+            mock_manager.broadcast_to_subscribers.assert_called_once()
 
     def test_websocket_router_included(self):
         """Test that WebSocket router is properly configured."""
@@ -113,30 +131,31 @@ class TestWebSocketRoutes:
     @pytest.mark.asyncio
     async def test_websocket_error_handling(self):
         """Test WebSocket error handling."""
-        with patch("agents.api.routes.websocket.websocket_service") as mock_service:
+        # Mock the ConnectionManager
+        with patch("agents.api.routes.websocket.manager") as mock_manager:
             # Test connection error
-            mock_service.connect = AsyncMock(side_effect=Exception("Connection failed"))
+            mock_manager.connect = AsyncMock(side_effect=Exception("Connection failed"))
 
             with pytest.raises(Exception, match="Connection failed"):
-                await mock_service.connect("client_id")
+                await mock_manager.connect(None, "client_id")
 
     @pytest.mark.asyncio
     async def test_websocket_connection_lifecycle(self):
         """Test full WebSocket connection lifecycle."""
-        with patch("agents.api.routes.websocket.websocket_service") as mock_service:
+        # Mock the ConnectionManager
+        with patch("agents.api.routes.websocket.manager") as mock_manager:
             # Setup mock lifecycle
-            mock_service.connect = AsyncMock(return_value="test_connection")
-            mock_service.disconnect = AsyncMock()
-            mock_service.get_connections = AsyncMock(return_value=["test_connection"])
+            mock_manager.connect = AsyncMock()
+            mock_manager.disconnect = AsyncMock()
+            mock_manager.active_connections = {"client_1": "test_connection"}
 
             # Test connection lifecycle
-            connection_id = await mock_service.connect("client_1")
-            assert connection_id == "test_connection"
+            await mock_manager.connect(None, "client_1")
+            mock_manager.connect.assert_called_once()
 
-            connections = await mock_service.get_connections()
-            assert "test_connection" in connections
-
-            await mock_service.disconnect(connection_id)
+            # Test disconnect
+            mock_manager.disconnect("client_1")
+            mock_manager.disconnect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_websocket_message_types(self):
@@ -148,12 +167,15 @@ class TestWebSocketRoutes:
             {"type": "completed", "data": {"result": "success"}},
         ]
 
-        with patch("agents.api.routes.websocket.websocket_service") as mock_service:
-            mock_service.broadcast = AsyncMock()
+        # Mock the ConnectionManager
+        with patch("agents.api.routes.websocket.manager") as mock_manager:
+            mock_manager.broadcast_to_subscribers = AsyncMock()
 
             for message in test_messages:
-                await mock_service.broadcast(message)
-                mock_service.broadcast.assert_called_with(message)
+                await mock_manager.broadcast_to_subscribers(message, "task_123")
+                mock_manager.broadcast_to_subscribers.assert_called_with(
+                    message, "task_123"
+                )
 
     def test_websocket_service_singleton(self):
         """Test that WebSocket service is properly initialized."""

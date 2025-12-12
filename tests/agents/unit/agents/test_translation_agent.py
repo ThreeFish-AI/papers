@@ -178,7 +178,13 @@ class TestTranslationAgent:
     @pytest.mark.asyncio
     async def test_translate_single_failure(self, translation_agent):
         """Test single translation failure."""
-        params = {"content": "Test content", "target_language": "zh"}
+        params = {
+            "content": "Test content",
+            "target_language": "zh",
+            "preserve_format": True,
+            "preserve_code": True,
+            "preserve_formulas": True,
+        }
 
         # Mock failed skill call
         translation_agent.call_skill = AsyncMock(
@@ -199,6 +205,9 @@ class TestTranslationAgent:
             "target_language": "zh",
             "batch_size": 20,  # Small batch size for testing
             "paper_id": "test_paper",
+            "preserve_format": True,
+            "preserve_code": True,
+            "preserve_formulas": True,
         }
 
         # Mock batch_call_skill
@@ -231,6 +240,9 @@ class TestTranslationAgent:
             "target_language": "zh",
             "batch_size": 20,
             "paper_id": "test_paper",
+            "preserve_format": True,
+            "preserve_code": True,
+            "preserve_formulas": True,
         }
 
         # Mock batch_call_skill with mixed results

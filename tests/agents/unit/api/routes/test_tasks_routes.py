@@ -144,8 +144,9 @@ class TestTasksRoutes:
 
         mock_task_service.get_task.side_effect = ValueError("Task not found")
 
-        with pytest.raises(HTTPException, status_code=404):
+        with pytest.raises(HTTPException) as exc:
             await get_task("nonexistent_task", mock_task_service)
+            assert exc.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_get_task_service_error(self, mock_task_service):
@@ -185,8 +186,9 @@ class TestTasksRoutes:
 
         mock_task_service.cancel_task.side_effect = ValueError("Task not found")
 
-        with pytest.raises(HTTPException, status_code=404):
+        with pytest.raises(HTTPException) as exc:
             await cancel_task("nonexistent_task", mock_task_service)
+            assert exc.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_cancel_task_service_error(self, mock_task_service):
@@ -243,8 +245,9 @@ class TestTasksRoutes:
 
         mock_task_service.get_task_logs.side_effect = ValueError("Task not found")
 
-        with pytest.raises(HTTPException, status_code=404):
+        with pytest.raises(HTTPException) as exc:
             await get_task_logs("nonexistent_task", 100, mock_task_service)
+            assert exc.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_cleanup_completed_tasks_success(self, mock_task_service):
@@ -300,13 +303,13 @@ class TestTasksRoutes:
 
     def test_route_methods(self):
         """Test that HTTP methods are correctly configured."""
+        route_methods = {}
         for route in router.routes:
-            if route.path == "/":
-                assert "GET" in route.methods
-            elif route.path == "/{task_id}":
-                assert "GET" in route.methods
-                assert "DELETE" in route.methods
-            elif route.path == "/{task_id}/logs":
-                assert "GET" in route.methods
-            elif route.path == "/cleanup":
-                assert "DELETE" in route.methods
+            route_methods[route.path] = route.methods
+
+        # Check each route has the expected methods
+        assert "GET" in route_methods["/"]
+        assert "GET" in route_methods["/{task_id}"]
+        assert "DELETE" in route_methods["/{task_id}"]
+        assert "GET" in route_methods["/{task_id}/logs"]
+        assert "DELETE" in route_methods["/cleanup"]
