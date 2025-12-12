@@ -246,31 +246,78 @@ class TestPaperService:
     @pytest.mark.asyncio
     async def test_list_papers(self, paper_service):
         """Test listing papers."""
-        papers = [
-            {"paper_id": "paper_1", "category": "llm-agents", "status": "completed"},
-            {"paper_id": "paper_2", "category": "rl", "status": "processing"},
-            {"paper_id": "paper_3", "category": "llm-agents", "status": "uploaded"},
-        ]
+        from tests.agents.fixtures.mocks.mock_file_operations import (
+            get_mock_file_manager,
+        )
 
-        with patch.object(
-            paper_service, "_list_all_metadata", new_callable=AsyncMock
-        ) as mock_list:
-            mock_list.return_value = papers
+        mock_file_manager = get_mock_file_manager()
 
-            with patch_file_operations():
-                # Test without filter
-                result = await paper_service.list_papers()
-                assert len(result["papers"]) == 3
+        # Get the papers_dir from the paper_service
+        papers_dir = str(paper_service.papers_dir)
 
-                # Test with category filter
-                result = await paper_service.list_papers(category="llm-agents")
-                assert len(result["papers"]) == 2
-                assert all(p["category"] == "llm-agents" for p in result["papers"])
+        # Add category directories and papers relative to the actual papers_dir
+        mock_file_manager.directories.add(f"{papers_dir}/source")
+        mock_file_manager.directories.add(f"{papers_dir}/source/llm-agents")
+        mock_file_manager.directories.add(f"{papers_dir}/source/rl")
+        mock_file_manager.directories.add(f"{papers_dir}/.metadata")
 
-                # Test with status filter
-                result = await paper_service.list_papers(status="processing")
-                assert len(result["papers"]) == 1
-                assert result["papers"][0]["status"] == "processing"
+        # Add paper files
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/llm-agents/paper_1.pdf", b"PDF content 1"
+        )
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/rl/paper_2.pdf", b"PDF content 2"
+        )
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/llm-agents/paper_3.pdf", b"PDF content 3"
+        )
+
+        # Add metadata files
+        import json
+
+        metadata1 = {
+            "status": "completed",
+            "upload_time": "2024-01-15T14:30:22Z",
+            "updated_at": "2024-01-15T14:30:22Z",
+            "filename": "paper_1.pdf",
+        }
+        metadata2 = {
+            "status": "processing",
+            "upload_time": "2024-01-15T14:30:22Z",
+            "updated_at": "2024-01-15T14:30:22Z",
+            "filename": "paper_2.pdf",
+        }
+        metadata3 = {
+            "status": "uploaded",
+            "upload_time": "2024-01-15T14:30:22Z",
+            "updated_at": "2024-01-15T14:30:22Z",
+            "filename": "paper_3.pdf",
+        }
+
+        mock_file_manager.add_text_file(
+            f"{papers_dir}/.metadata/paper_1.json", json.dumps(metadata1)
+        )
+        mock_file_manager.add_text_file(
+            f"{papers_dir}/.metadata/paper_2.json", json.dumps(metadata2)
+        )
+        mock_file_manager.add_text_file(
+            f"{papers_dir}/.metadata/paper_3.json", json.dumps(metadata3)
+        )
+
+        with patch_file_operations(custom_file_manager=mock_file_manager):
+            # Test without filter
+            result = await paper_service.list_papers()
+            assert len(result["papers"]) == 3
+
+            # Test with category filter
+            result = await paper_service.list_papers(category="llm-agents")
+            assert len(result["papers"]) == 2
+            assert all(p["category"] == "llm-agents" for p in result["papers"])
+
+            # Test with status filter
+            result = await paper_service.list_papers(status="processing")
+            assert len(result["papers"]) == 1
+            assert result["papers"][0]["status"] == "processing"
 
     @pytest.mark.asyncio
     async def test_list_papers_empty(self, paper_service):
@@ -361,30 +408,52 @@ class TestPaperService:
     @pytest.mark.asyncio
     async def test_batch_translate(self, paper_service, temp_dir):
         """Test batch translation of papers."""
+        from tests.agents.fixtures.mocks.mock_file_operations import (
+            get_mock_file_manager,
+        )
+
         paper_ids = ["paper_1", "paper_2", "paper_3"]
-        papers_dir = temp_dir / "papers"
+
+        mock_file_manager = get_mock_file_manager()
+        papers_dir = str(paper_service.papers_dir)
+
+        # Add directories and files to mock file manager
+        mock_file_manager.directories.add(f"{papers_dir}/source")
+        mock_file_manager.directories.add(f"{papers_dir}/source/test")
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/test/paper_1.pdf", b"PDF content 1"
+        )
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/test/paper_2.pdf", b"PDF content 2"
+        )
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/test/paper_3.pdf", b"PDF content 3"
+        )
 
         # Mock _get_source_path to return paths that exist
         def mock_get_source_path(paper_id):
-            path = papers_dir / "source/test" / f"{paper_id}.pdf"
-            # Add file to mock file manager so exists() returns True
-            mock_file_manager.add_file(str(path), b"PDF content")
-            return path
+            return Path(f"{papers_dir}/source/test/{paper_id}.pdf")
 
         with patch.object(
             paper_service, "_get_source_path", side_effect=mock_get_source_path
         ):
-            paper_service.batch_agent.batch_translate.return_value = {
-                "batch_id": "batch_123",
-                "total": 3,
-                "status": "processing",
-            }
+            with patch_file_operations(custom_file_manager=mock_file_manager):
+                # Clear any existing calls to the mock
+                paper_service.batch_agent.batch_translate.reset_mock()
 
-            result = await paper_service.batch_translate(paper_ids)
+                paper_service.batch_agent.batch_translate.return_value = {
+                    "batch_id": "batch_123",
+                    "total": 3,
+                    "status": "processing",
+                }
 
-            assert result["batch_id"] == "batch_123"
-            assert result["total"] == 3
-            paper_service.batch_agent.batch_translate.assert_called_once_with(paper_ids)
+                result = await paper_service.batch_translate(paper_ids)
+
+                assert result["batch_id"] == "batch_123"
+                assert result["total"] == 3
+                paper_service.batch_agent.batch_translate.assert_called_once_with(
+                    paper_ids
+                )
 
     def test_sanitize_filename(self, paper_service):
         """Test filename sanitization."""
@@ -405,11 +474,22 @@ class TestPaperService:
     @pytest.mark.asyncio
     async def test_heartfelt_analysis(self, paper_service, temp_dir):
         """Test heartfelt analysis of paper."""
+        from tests.agents.fixtures.mocks.mock_file_operations import (
+            get_mock_file_manager,
+        )
+
         paper_id = "test_paper_123"
-        papers_dir = temp_dir / "papers"
-        source_path = papers_dir / "source/test/test_paper_123.pdf"
+
+        mock_file_manager = get_mock_file_manager()
+        papers_dir = str(paper_service.papers_dir)
+        source_path = Path(f"{papers_dir}/source/test/test_paper_123.pdf")
+
         # Add file to mock file manager so exists() returns True
-        mock_file_manager.add_file(str(source_path), b"PDF content")
+        mock_file_manager.add_file(
+            f"{papers_dir}/source/test/test_paper_123.pdf", b"PDF content"
+        )
+        mock_file_manager.directories.add(f"{papers_dir}/source")
+        mock_file_manager.directories.add(f"{papers_dir}/source/test")
 
         with patch.object(paper_service, "_get_source_path", return_value=source_path):
             with patch.object(
@@ -417,19 +497,30 @@ class TestPaperService:
             ) as mock_get_meta:
                 mock_get_meta.return_value = {"workflows": {}}
 
-                paper_service.heartfelt_agent.analyze.return_value = {
-                    "analysis_id": "analysis_123",
-                    "status": "processing",
-                }
+                with patch_file_operations(custom_file_manager=mock_file_manager):
+                    # Clear any existing calls to the mock
+                    paper_service.heartfelt_agent.analyze.reset_mock()
 
-                result = await paper_service.analyze_paper(paper_id)
+                    paper_service.heartfelt_agent.analyze.return_value = {
+                        "analysis_id": "analysis_123",
+                        "status": "processing",
+                    }
 
-                assert result["analysis_id"] == "analysis_123"
-                paper_service.heartfelt_agent.analyze.assert_called_once_with(paper_id)
+                    result = await paper_service.analyze_paper(paper_id)
+
+                    assert result["analysis_id"] == "analysis_123"
+                    paper_service.heartfelt_agent.analyze.assert_called_once_with(
+                        paper_id
+                    )
 
     @pytest.mark.asyncio
     async def test_get_paper_info(self, paper_service, temp_dir):
         """Test getting complete paper info."""
+        from tests.agents.fixtures.mocks.mock_file_operations import (
+            get_mock_file_manager,
+        )
+        from unittest.mock import PropertyMock
+
         paper_id = "test_paper_123"
         metadata = {
             "paper_id": paper_id,
@@ -444,16 +535,16 @@ class TestPaperService:
             },
         }
 
-        papers_dir = temp_dir / "papers"
-        source_path = papers_dir / "source/test/test.pdf"
+        mock_file_manager = get_mock_file_manager()
+        papers_dir = str(paper_service.papers_dir)
+        source_path = Path(f"{papers_dir}/source/test/test.pdf")
+
         # Add file to mock file manager so exists() returns True
         mock_file_manager.add_file(
             str(source_path), b"PDF content" * 1000
         )  # Large content
-        # Mock stat().st_size
-        mock_stat = MagicMock()
-        mock_stat.st_size = 1024000
-        source_path.stat = PropertyMock(return_value=mock_stat)
+        mock_file_manager.directories.add(f"{papers_dir}/source")
+        mock_file_manager.directories.add(f"{papers_dir}/source/test")
 
         with patch.object(paper_service, "_get_source_path", return_value=source_path):
             with patch.object(
@@ -461,14 +552,15 @@ class TestPaperService:
             ) as mock_get_meta:
                 mock_get_meta.return_value = metadata
 
-                result = await paper_service.get_paper_info(paper_id)
+                with patch_file_operations(custom_file_manager=mock_file_manager):
+                    result = await paper_service.get_paper_info(paper_id)
 
-                assert isinstance(result, dict)
-                assert result["paper_id"] == paper_id
-                assert result["filename"] == "test.pdf"
-                assert result["size"] == 1024000
-                assert result["category"] == "llm-agents"
-                assert result["status"] == "completed"
+                    assert isinstance(result, dict)
+                    assert result["paper_id"] == paper_id
+                    assert result["filename"] == "test.pdf"
+                    assert result["size"] == 1024000
+                    assert result["category"] == "llm-agents"
+                    assert result["status"] == "completed"
 
     @pytest.mark.asyncio
     async def test_update_paper_metadata(self, paper_service):

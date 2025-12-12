@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 
 class MockFileManager:
@@ -52,12 +53,21 @@ class MockFileManager:
         """Mock exists() method for pathlib.Path."""
         # path_obj is the Path object when used as side_effect
         path_str = str(path_obj)
-        if path_str in self.files:
+
+        # Check if it's an absolute path
+        if path_str in self.files or path_str in self.directories:
             return True
-        # Check if it's a directory
-        return any(
-            path_str == d or path_str.startswith(f"{d}/") for d in self.directories
-        )
+
+        # Check if it's a relative path from iterdir
+        # For each file and directory in our set, check if this is the basename
+        for f in self.files:
+            if f.endswith(f"/{path_str}"):
+                return True
+        for d in self.directories:
+            if d.endswith(f"/{path_str}"):
+                return True
+
+        return False
 
     def is_file(self, path: str) -> bool:
         """Mock is_file() method for direct calls to MockFileManager."""
@@ -66,7 +76,19 @@ class MockFileManager:
     def is_file_path(self, path_obj) -> bool:
         """Mock is_file() method for pathlib.Path."""
         # path_obj is the Path object when used as side_effect
-        return str(path_obj) in self.files
+        path_str = str(path_obj)
+
+        # Check if it's an absolute path
+        if path_str in self.files:
+            return True
+
+        # Check if it's a relative path from iterdir
+        # For each file in our set, check if this is the basename
+        for f in self.files:
+            if f.endswith(f"/{path_str}"):
+                return True
+
+        return False
 
     def is_dir(self, path: str) -> bool:
         """Mock is_dir() method for direct calls to MockFileManager."""
@@ -77,7 +99,18 @@ class MockFileManager:
         """Mock is_dir() method for pathlib.Path."""
         # path_obj is the Path object when used as side_effect
         path_str = str(path_obj)
-        return path_str in self.directories
+
+        # Check if it's an absolute path
+        if path_str in self.directories:
+            return True
+
+        # Check if it's a relative path from iterdir
+        # For each directory in our set, check if this is the basename
+        for d in self.directories:
+            if d.endswith(f"/{path_str}"):
+                return True
+
+        return False
 
     def read_bytes(self, path: str) -> bytes:
         """Mock read_bytes() method for direct calls to MockFileManager."""
@@ -155,11 +188,13 @@ class MockFileManager:
         # path_obj is the Path object when used as side_effect
         path_str = str(path_obj)
         files = []
+        # Add files
         for f in self.files:
             if f.startswith(f"{path_str}/"):
                 rel_path = f[len(path_str) + 1 :]
                 if "/" not in rel_path:  # Direct child only
                     files.append(Path(rel_path))
+        # Add directories
         for d in self.directories:
             if d.startswith(f"{path_str}/"):
                 rel_path = d[len(path_str) + 1 :]
@@ -186,6 +221,12 @@ class MockFileManager:
             # for files that don't exist, so raise the expected error
             raise FileNotFoundError(f"File not found: {path_str}")
 
+    def stat_path(self, path_obj):
+        """Mock stat() method for pathlib.Path."""
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
+        return self.stat(path_str)
+
     def rmtree(self, path: str):
         """Mock rmtree() method."""
         path_str = str(path)
@@ -204,6 +245,15 @@ class MockFileManager:
         """Mock getsize() method."""
         if str(path) in self.files:
             return len(self.files[str(path)])
+        raise FileNotFoundError(f"File not found: {path}")
+
+    def stat(self, path: str):
+        """Mock stat() method."""
+        if str(path) in self.files:
+            mock_stat = Mock()
+            mock_stat.st_size = len(self.files[str(path)])
+            mock_stat.st_mtime = 1705314000  # Fixed timestamp for consistency
+            return mock_stat
         raise FileNotFoundError(f"File not found: {path}")
 
     def add_file(self, path: str, content: bytes):
@@ -479,6 +529,10 @@ class FileOperationsPatcher:
             # path_obj is the Path object when called as instance method
             return file_mgr.unlink_path(path_obj)
 
+        def stat_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.stat_path(path_obj)
+
         self.patches.append(patch("pathlib.Path.exists", exists_wrapper))
         self.patches.append(patch("pathlib.Path.is_file", is_file_wrapper))
         self.patches.append(patch("pathlib.Path.is_dir", is_dir_wrapper))
@@ -487,6 +541,7 @@ class FileOperationsPatcher:
         self.patches.append(patch("pathlib.Path.mkdir", mkdir_wrapper))
         self.patches.append(patch("pathlib.Path.iterdir", iterdir_wrapper))
         self.patches.append(patch("pathlib.Path.unlink", unlink_wrapper))
+        self.patches.append(patch("pathlib.Path.stat", stat_wrapper))
 
         # Patch aiofiles
         self.patches.append(patch("aiofiles.open", side_effect=self.aiofiles.open))
@@ -500,6 +555,11 @@ class FileOperationsPatcher:
         # Patch os.path.getsize
         self.patches.append(
             patch("os.path.getsize", side_effect=self.file_manager.getsize)
+        )
+
+        # Patch os.path.exists
+        self.patches.append(
+            patch("os.path.exists", side_effect=self.file_manager.exists)
         )
 
         # Start all patches
