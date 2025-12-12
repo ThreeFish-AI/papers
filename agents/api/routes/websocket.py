@@ -56,13 +56,13 @@ class ConnectionManager:
             if task_id in subscriptions:
                 await self.send_personal_message(message, client_id)
 
-    async def subscribe(self, client_id: str, task_id: str):
+    async def subscribe(self, client_id: str, task_id: str) -> None:
         """订阅任务更新."""
         if client_id in self.client_subscriptions:
             self.client_subscriptions[client_id].add(task_id)
             logger.info(f"Client {client_id} subscribed to task {task_id}")
 
-    async def unsubscribe(self, client_id: str, task_id: str):
+    async def unsubscribe(self, client_id: str, task_id: str) -> None:
         """取消订阅任务更新."""
         if client_id in self.client_subscriptions:
             self.client_subscriptions[client_id].discard(task_id)
@@ -73,7 +73,7 @@ manager = ConnectionManager()
 
 
 @router.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
+async def websocket_endpoint(websocket: WebSocket, client_id: str) -> None:
     """WebSocket 连接端点."""
     await manager.connect(websocket, client_id)
 

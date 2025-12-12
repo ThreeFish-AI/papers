@@ -14,7 +14,7 @@ class TaskService:
 
     def __init__(self) -> None:
         """初始化 TaskService."""
-        self.tasks = {}  # 内存中的任务存储
+        self.tasks: dict[str, dict[str, Any]] = {}  # 内存中的任务存储
         self.logs_dir = Path("logs/tasks")
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -86,7 +86,7 @@ class TaskService:
         message: str | None = None,
         result: dict[str, Any] | None = None,
         error: str | None = None,
-    ):
+    ) -> None:
         """更新任务状态.
 
         Args:
@@ -129,14 +129,16 @@ class TaskService:
         try:
             from ..routes.websocket import send_task_update
 
-            await send_task_update(task_id, status, progress or 0.0, message or "")
+            await send_task_update(
+                task_id, status or "unknown", progress or 0.0, message or ""
+            )
 
             # 如果任务完成，发送完成通知
             if status in ["completed", "failed"]:
                 # 发送任务更新消息而不是未定义的函数
                 await send_task_update(
                     task_id,
-                    status,
+                    status or "unknown",
                     progress=100.0 if status == "completed" else progress,
                     message=message,
                 )

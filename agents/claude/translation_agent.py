@@ -22,7 +22,7 @@ class TranslationAgent(BaseAgent):
         self.papers_dir = Path(
             config.get("papers_dir", "papers") if config else "papers"
         )
-        self.default_options = {
+        self.default_options: dict[str, Any] = {
             "target_language": "zh",
             "preserve_format": True,
             "preserve_code": True,

@@ -38,7 +38,7 @@ async def upload_paper(
     file: UploadFile = File(...),
     category: str = Query("general", description="论文分类"),
     service: PaperService = Depends(get_paper_service),
-):
+) -> PaperUploadResponse:
     """
     上传论文文件.
 
@@ -53,7 +53,7 @@ async def upload_paper(
 
     try:
         result = await service.upload_paper(file, category)
-        return result
+        return PaperUploadResponse(**result)
     except Exception as e:
         logger.error(f"Error uploading paper: {str(e)}")
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}") from e
