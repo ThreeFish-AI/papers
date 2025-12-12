@@ -114,8 +114,7 @@ class TestPaperService:
 
                 with patch_file_operations():
                     mock_file_manager.add_file(str(source_path), b"PDF content")
-                    mock_file_manager.exists(str(source_path))
-                    source_path.exists = lambda: True  # Mock path.exists() check
+                    # Path.exists is already mocked by patch_file_operations()
 
                     # Mock workflow agent
                     paper_service.workflow_agent.process.return_value = {
@@ -155,9 +154,7 @@ class TestPaperService:
                 with patch_file_operations():
                     # File doesn't exist
                     mock_file_manager.files = {}
-                    source_path.exists = (
-                        lambda: False
-                    )  # Mock path.exists() to return False
+                    # Path.exists is already mocked by patch_file_operations()
 
                     with pytest.raises(ValueError, match="Paper not found"):
                         await paper_service.process_paper(paper_id, "full")
@@ -179,7 +176,7 @@ class TestPaperService:
 
                 with patch_file_operations():
                     mock_file_manager.add_file(str(source_path), b"PDF content")
-                    source_path.exists = lambda: True  # Mock path.exists() check
+                    # Path.exists is already mocked by patch_file_operations()
 
                     paper_service.workflow_agent.process.return_value = {
                         "task_id": "task_456",
@@ -253,19 +250,20 @@ class TestPaperService:
         ) as mock_list:
             mock_list.return_value = papers
 
-            # Test without filter
-            result = await paper_service.list_papers()
-            assert len(result["papers"]) == 3
+            with patch_file_operations():
+                # Test without filter
+                result = await paper_service.list_papers()
+                assert len(result["papers"]) == 3
 
-            # Test with category filter
-            result = await paper_service.list_papers(category="llm-agents")
-            assert len(result["papers"]) == 2
-            assert all(p["category"] == "llm-agents" for p in result["papers"])
+                # Test with category filter
+                result = await paper_service.list_papers(category="llm-agents")
+                assert len(result["papers"]) == 2
+                assert all(p["category"] == "llm-agents" for p in result["papers"])
 
-            # Test with status filter
-            result = await paper_service.list_papers(status="processing")
-            assert len(result["papers"]) == 1
-            assert result["papers"][0]["status"] == "processing"
+                # Test with status filter
+                result = await paper_service.list_papers(status="processing")
+                assert len(result["papers"]) == 1
+                assert result["papers"][0]["status"] == "processing"
 
     @pytest.mark.asyncio
     async def test_list_papers_empty(self, paper_service):
@@ -275,8 +273,9 @@ class TestPaperService:
         ) as mock_list:
             mock_list.return_value = []
 
-            result = await paper_service.list_papers()
-            assert result["papers"] == []
+            with patch_file_operations():
+                result = await paper_service.list_papers()
+                assert result["papers"] == []
 
     @pytest.mark.asyncio
     async def test_delete_paper(self, paper_service, temp_dir):
@@ -342,12 +341,12 @@ class TestPaperService:
     async def test_get_paper_content_not_found(self, paper_service):
         """Test getting content for non-existent output."""
         paper_id = "test_paper_123"
+        output_path = Path("/test/nonexistent_output.json")
 
-        with patch.object(
-            paper_service, "_get_output_path", return_value=Path("/test/output.json")
-        ):
+        with patch.object(paper_service, "_get_output_path", return_value=output_path):
             with patch_file_operations():
-                # File doesn't exist
+                # Ensure file doesn't exist in mock file manager
+                # Don't add the file to mock_file_manager.files
                 result = await paper_service.get_paper_content(paper_id, "extracted")
 
                 assert result is None
@@ -361,7 +360,8 @@ class TestPaperService:
         # Mock _get_source_path to return paths that exist
         def mock_get_source_path(paper_id):
             path = papers_dir / "source/test" / f"{paper_id}.pdf"
-            path.exists = lambda: True  # Mock exists() to return True
+            # Add file to mock file manager so exists() returns True
+            mock_file_manager.add_file(str(path), b"PDF content")
             return path
 
         with patch.object(
@@ -401,7 +401,8 @@ class TestPaperService:
         paper_id = "test_paper_123"
         papers_dir = temp_dir / "papers"
         source_path = papers_dir / "source/test/test_paper_123.pdf"
-        source_path.exists = lambda: True  # Mock exists() to return True
+        # Add file to mock file manager so exists() returns True
+        mock_file_manager.add_file(str(source_path), b"PDF content")
 
         with patch.object(paper_service, "_get_source_path", return_value=source_path):
             with patch.object(
@@ -438,7 +439,10 @@ class TestPaperService:
 
         papers_dir = temp_dir / "papers"
         source_path = papers_dir / "source/test/test.pdf"
-        source_path.exists = lambda: True
+        # Add file to mock file manager so exists() returns True
+        mock_file_manager.add_file(
+            str(source_path), b"PDF content" * 1000
+        )  # Large content
         # Mock stat().st_size
         source_path.stat = lambda: type("stat", (), {"st_size": 1024000})()
 
