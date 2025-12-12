@@ -64,9 +64,14 @@ class TestSettings:
         """Test Settings with default values."""
         # The Settings class reads environment vars at instantiation time,
         # so we patch the environment for specific tests
+        # Test with clean environment (no env vars)
+        import os
+        from unittest.mock import patch
+
         from agents.core.config import Settings
 
-        s = Settings()
+        with patch.dict(os.environ, {}, clear=True):
+            s = Settings()
 
         # Test that defaults are reasonable values
         assert isinstance(s.DEBUG, bool)

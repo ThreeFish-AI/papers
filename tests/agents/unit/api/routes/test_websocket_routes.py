@@ -186,3 +186,33 @@ class TestWebSocketRoutes:
         # Service should be initialized (singleton behavior not strictly required)
         assert service1 is not None
         assert service2 is not None
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_initialization(self):
+        """Test ConnectionManager initialization."""
+        manager = ConnectionManager()
+        assert manager.active_connections == {}
+        assert manager.client_subscriptions == {}
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_subscribe_unsubscribe(self):
+        """Test ConnectionManager subscribe/unsubscribe methods."""
+        manager = ConnectionManager()
+
+        # Initialize client_subscriptions for client1
+        manager.client_subscriptions["client1"] = set()
+
+        # Test subscribe
+        await manager.subscribe("client1", "task1")
+        assert "task1" in manager.client_subscriptions["client1"]
+
+        # Test unsubscribe
+        await manager.unsubscribe("client1", "task1")
+        assert "task1" not in manager.client_subscriptions["client1"]
+
+    def test_manager_instance(self):
+        """Test that manager instance exists."""
+        from agents.api.routes.websocket import manager
+
+        assert manager is not None
+        assert isinstance(manager, ConnectionManager)
