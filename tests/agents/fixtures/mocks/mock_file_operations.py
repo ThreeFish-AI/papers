@@ -48,37 +48,36 @@ class MockFileManager:
             path_str == d or path_str.startswith(f"{d}/") for d in self.directories
         )
 
-    def exists_path(self) -> bool:
+    def exists_path(self, path_obj) -> bool:
         """Mock exists() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        path_str = str(self)
-        if path_str in mock_file_manager.files:
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
+        if path_str in self.files:
             return True
         # Check if it's a directory
         return any(
-            path_str == d or path_str.startswith(f"{d}/")
-            for d in mock_file_manager.directories
+            path_str == d or path_str.startswith(f"{d}/") for d in self.directories
         )
 
     def is_file(self, path: str) -> bool:
         """Mock is_file() method for direct calls to MockFileManager."""
         return str(path) in self.files
 
-    def is_file_path(self) -> bool:
+    def is_file_path(self, path_obj) -> bool:
         """Mock is_file() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        return str(self) in mock_file_manager.files
+        # path_obj is the Path object when used as side_effect
+        return str(path_obj) in self.files
 
     def is_dir(self, path: str) -> bool:
         """Mock is_dir() method for direct calls to MockFileManager."""
         path_str = str(path)
         return path_str in self.directories
 
-    def is_dir_path(self) -> bool:
+    def is_dir_path(self, path_obj) -> bool:
         """Mock is_dir() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        path_str = str(self)
-        return path_str in mock_file_manager.directories
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
+        return path_str in self.directories
 
     def read_bytes(self, path: str) -> bytes:
         """Mock read_bytes() method for direct calls to MockFileManager."""
@@ -86,13 +85,13 @@ class MockFileManager:
             return self.files[str(path)]
         raise FileNotFoundError(f"File not found: {path}")
 
-    def read_bytes_path(self) -> bytes:
+    def read_bytes_path(self, path_obj) -> bytes:
         """Mock read_bytes() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        path_str = str(self)
-        if path_str in mock_file_manager.files:
-            return mock_file_manager.files[path_str]
-        raise FileNotFoundError(f"File not found: {self}")
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
+        if path_str in self.files:
+            return self.files[path_str]
+        raise FileNotFoundError(f"File not found: {path_obj}")
 
     def read_text(self, path: str, encoding: str = "utf-8") -> str:
         """Mock read_text() method."""
@@ -103,10 +102,10 @@ class MockFileManager:
         """Mock write_bytes() method for direct calls to MockFileManager."""
         self.files[str(path)] = content
 
-    def write_bytes_path(self, content: bytes):
+    def write_bytes_path(self, path_obj, content: bytes):
         """Mock write_bytes() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        mock_file_manager.files[str(self)] = content
+        # path_obj is the Path object when used as side_effect
+        self.files[str(path_obj)] = content
 
     def write_text(self, path: str, content: str, encoding: str = "utf-8"):
         """Mock write_text() method."""
@@ -125,13 +124,15 @@ class MockFileManager:
             raise FileExistsError(f"Directory exists: {path}")
         self.directories.add(path_str)
 
-    def mkdir_path(self, parents: bool = False, exist_ok: bool = False, **kwargs):
+    def mkdir_path(
+        self, path_obj, parents: bool = False, exist_ok: bool = False, **kwargs
+    ):
         """Mock mkdir() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        path_str = str(self)
-        if not exist_ok and path_str in mock_file_manager.directories:
-            raise FileExistsError(f"Directory exists: {self}")
-        mock_file_manager.directories.add(path_str)
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
+        if not exist_ok and path_str in self.directories:
+            raise FileExistsError(f"Directory exists: {path_obj}")
+        self.directories.add(path_str)
 
     def iterdir(self, path: str):
         """Mock iterdir() method for direct calls to MockFileManager."""
@@ -149,17 +150,17 @@ class MockFileManager:
                     files.append(Path(rel_path))
         return iter(files)
 
-    def iterdir_path(self):
+    def iterdir_path(self, path_obj):
         """Mock iterdir() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        path_str = str(self)
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
         files = []
-        for f in mock_file_manager.files:
+        for f in self.files:
             if f.startswith(f"{path_str}/"):
                 rel_path = f[len(path_str) + 1 :]
                 if "/" not in rel_path:  # Direct child only
                     files.append(Path(rel_path))
-        for d in mock_file_manager.directories:
+        for d in self.directories:
             if d.startswith(f"{path_str}/"):
                 rel_path = d[len(path_str) + 1 :]
                 if "/" not in rel_path:  # Direct child only
@@ -173,19 +174,13 @@ class MockFileManager:
         else:
             raise FileNotFoundError(f"File not found: {path}")
 
-    def unlink_path(self):
+    def unlink_path(self, path_obj):
         """Mock unlink() method for pathlib.Path."""
-        # Convert to string to get the path
-        try:
-            path_str = str(self)
-        except Exception as e:
-            # If we can't convert to string, there's a serious problem
-            raise FileNotFoundError(
-                f"Cannot extract path from object: {self}, error: {e}"
-            ) from e
+        # path_obj is the Path object when used as side_effect
+        path_str = str(path_obj)
 
-        if path_str in mock_file_manager.files:
-            del mock_file_manager.files[path_str]
+        if path_str in self.files:
+            del self.files[path_str]
         else:
             # File not found in mock - this could be expected behavior
             # for files that don't exist, so raise the expected error
@@ -324,10 +319,15 @@ class MockFile:
             self._position += size
             return result
 
-    def write(self, content: bytes):
-        """Write method."""
+    def write(self, content):
+        """Write method - handles both string and bytes."""
         if not hasattr(self, "_written_content"):
-            self._written_content = b""
+            # Initialize based on the type of content being written
+            if isinstance(content, bytes):
+                self._written_content = b""
+            else:
+                self._written_content = ""
+
         self._written_content += content
 
     def readall(self) -> bytes:
@@ -443,35 +443,50 @@ class FileOperationsPatcher:
             raise RuntimeError("Patcher already in use")
 
         # Patch Path methods using the original approach but with our file manager
-        self.patches.append(
-            patch("pathlib.Path.exists", side_effect=self.file_manager.exists_path)
-        )
-        self.patches.append(
-            patch("pathlib.Path.is_file", side_effect=self.file_manager.is_file_path)
-        )
-        self.patches.append(
-            patch("pathlib.Path.is_dir", side_effect=self.file_manager.is_dir_path)
-        )
-        self.patches.append(
-            patch(
-                "pathlib.Path.read_bytes", side_effect=self.file_manager.read_bytes_path
-            )
-        )
-        self.patches.append(
-            patch(
-                "pathlib.Path.write_bytes",
-                side_effect=self.file_manager.write_bytes_path,
-            )
-        )
-        self.patches.append(
-            patch("pathlib.Path.mkdir", side_effect=self.file_manager.mkdir_path)
-        )
-        self.patches.append(
-            patch("pathlib.Path.iterdir", side_effect=self.file_manager.iterdir_path)
-        )
-        self.patches.append(
-            patch("pathlib.Path.unlink", side_effect=self.file_manager.unlink_path)
-        )
+        # Create wrapper functions that properly handle the bound method calls
+        # Store reference to file_manager to avoid confusion with self
+        file_mgr = self.file_manager
+
+        def exists_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.exists_path(path_obj)
+
+        def is_file_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.is_file_path(path_obj)
+
+        def is_dir_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.is_dir_path(path_obj)
+
+        def read_bytes_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.read_bytes_path(path_obj)
+
+        def write_bytes_wrapper(path_obj, content):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.write_bytes_path(path_obj, content)
+
+        def mkdir_wrapper(path_obj, parents=False, exist_ok=False, **kwargs):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.mkdir_path(path_obj, parents, exist_ok, **kwargs)
+
+        def iterdir_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.iterdir_path(path_obj)
+
+        def unlink_wrapper(path_obj):
+            # path_obj is the Path object when called as instance method
+            return file_mgr.unlink_path(path_obj)
+
+        self.patches.append(patch("pathlib.Path.exists", exists_wrapper))
+        self.patches.append(patch("pathlib.Path.is_file", is_file_wrapper))
+        self.patches.append(patch("pathlib.Path.is_dir", is_dir_wrapper))
+        self.patches.append(patch("pathlib.Path.read_bytes", read_bytes_wrapper))
+        self.patches.append(patch("pathlib.Path.write_bytes", write_bytes_wrapper))
+        self.patches.append(patch("pathlib.Path.mkdir", mkdir_wrapper))
+        self.patches.append(patch("pathlib.Path.iterdir", iterdir_wrapper))
+        self.patches.append(patch("pathlib.Path.unlink", unlink_wrapper))
 
         # Patch aiofiles
         self.patches.append(patch("aiofiles.open", side_effect=self.aiofiles.open))
