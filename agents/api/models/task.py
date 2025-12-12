@@ -1,6 +1,6 @@
 """Task related data models."""
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,11 +14,11 @@ class TaskResponse(BaseModel):
     status: str = Field(..., description="任务状态")
     progress: float = Field(default=0, ge=0, le=100, description="进度百分比")
     message: str = Field(default="", description="状态消息")
-    result: Optional[dict[str, Any]] = Field(None, description="处理结果")
-    error: Optional[str] = Field(None, description="错误信息")
+    result: dict[str, Any] | None = Field(None, description="处理结果")
+    error: str | None = Field(None, description="错误信息")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
-    params: Optional[dict[str, Any]] = Field(None, description="任务参数")
+    params: dict[str, Any] | None = Field(None, description="任务参数")
 
     class Config:
         schema_extra = {
@@ -61,9 +61,9 @@ class TaskUpdate(BaseModel):
 
     type: str = Field(..., description="消息类型")
     task_id: str = Field(..., description="任务ID")
-    status: Optional[str] = Field(None, description="状态")
-    progress: Optional[float] = Field(None, description="进度")
-    message: Optional[str] = Field(None, description="消息")
+    status: str | None = Field(None, description="状态")
+    progress: float | None = Field(None, description="进度")
+    message: str | None = Field(None, description="消息")
     timestamp: str = Field(..., description="时间戳")
 
 
@@ -73,8 +73,8 @@ class TaskCompletion(BaseModel):
     type: str = Field(..., description="消息类型")
     task_id: str = Field(..., description="任务ID")
     success: bool = Field(..., description="是否成功")
-    result: Optional[dict[str, Any]] = Field(None, description="结果")
-    error: Optional[str] = Field(None, description="错误")
+    result: dict[str, Any] | None = Field(None, description="结果")
+    error: str | None = Field(None, description="错误")
     timestamp: str = Field(..., description="时间戳")
 
 
@@ -86,7 +86,7 @@ class BatchProgress(BaseModel):
     total: int = Field(..., description="总数")
     processed: int = Field(..., description="已处理数")
     progress: float = Field(..., description="进度百分比")
-    current_file: Optional[str] = Field(None, description="当前文件")
+    current_file: str | None = Field(None, description="当前文件")
     timestamp: str = Field(..., description="时间戳")
 
 

@@ -6,9 +6,10 @@ import logging
 import os
 import re
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Dict, List, Callable, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ def extract_text_summary(text: str, max_length: int = 200) -> str:
     return summary
 
 
-def validate_pdf_file(file_path: str) -> Dict[str, Any]:
+def validate_pdf_file(file_path: str) -> dict[str, Any]:
     """验证 PDF 文件.
 
     Args:
@@ -133,7 +134,7 @@ def validate_pdf_file(file_path: str) -> Dict[str, Any]:
     Returns:
         验证结果
     """
-    result: Dict[str, Union[bool, str, int, None]] = {
+    result: dict[str, bool | str | int | None] = {
         "valid": False,
         "error": None,
         "size": 0,
@@ -258,8 +259,8 @@ def merge_dicts(*dicts: dict[str, Any]) -> dict[str, Any]:
 
 
 def flatten_dict(
-    d: Dict[str, Any], parent_key: str = "", sep: str = "."
-) -> Dict[str, Any]:
+    d: dict[str, Any], parent_key: str = "", sep: str = "."
+) -> dict[str, Any]:
     """扁平化字典.
 
     Args:
@@ -270,7 +271,7 @@ def flatten_dict(
     Returns:
         扁平化的字典
     """
-    items: List[tuple[str, Any]] = []
+    items: list[tuple[str, Any]] = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
         if isinstance(v, dict):

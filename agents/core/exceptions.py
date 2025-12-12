@@ -1,6 +1,6 @@
 """Custom exceptions for the application."""
 
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class BaseAPIException(Exception):
@@ -9,8 +9,8 @@ class BaseAPIException(Exception):
     def __init__(
         self,
         message: str,
-        code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        code: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         self.message = message
         self.code = code or self.__class__.__name__
