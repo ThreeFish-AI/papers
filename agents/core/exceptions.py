@@ -1,10 +1,17 @@
 """Custom exceptions for the application."""
 
+from typing import Optional, Dict, Any
+
 
 class BaseAPIException(Exception):
     """API 异常基类."""
 
-    def __init__(self, message: str, code: str = None, details: dict = None):
+    def __init__(
+        self,
+        message: str,
+        code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
         self.message = message
         self.code = code or self.__class__.__name__
         self.details = details or {}

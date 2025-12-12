@@ -1,6 +1,7 @@
 """WebSocket service for real-time communication."""
 
 import logging
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 class WebSocketService:
     """WebSocket 服务."""
 
-    def __init__(self, connection_manager):
+    def __init__(self, connection_manager) -> None:
         """初始化 WebSocketService.
 
         Args:
@@ -17,8 +18,12 @@ class WebSocketService:
         self.manager = connection_manager
 
     async def send_task_update(
-        self, task_id: str, status: str, progress: float = None, message: str = None
-    ):
+        self,
+        task_id: str,
+        status: str,
+        progress: Optional[float] = None,
+        message: Optional[str] = None,
+    ) -> None:
         """发送任务更新.
 
         Args:
@@ -32,8 +37,11 @@ class WebSocketService:
         await send_task_update(task_id, status, progress, message)
 
     async def send_task_completion(
-        self, task_id: str, result: dict = None, error: str = None
-    ):
+        self,
+        task_id: str,
+        result: Optional[Dict[str, Any]] = None,
+        error: Optional[str] = None,
+    ) -> None:
         """发送任务完成通知.
 
         Args:
@@ -46,8 +54,12 @@ class WebSocketService:
         await send_task_completion(task_id, result, error)
 
     async def send_batch_progress(
-        self, batch_id: str, total: int, processed: int, current_file: str = None
-    ):
+        self,
+        batch_id: str,
+        total: int,
+        processed: int,
+        current_file: Optional[str] = None,
+    ) -> None:
         """发送批处理进度.
 
         Args:
