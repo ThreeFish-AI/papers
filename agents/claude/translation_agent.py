@@ -160,7 +160,7 @@ class TranslationAgent(BaseAgent):
 
         # 准备批量调用
         calls = []
-        for i, batch in enumerate(batches):
+        for batch in batches:
             calls.append(
                 {
                     "skill": "zh-translator",

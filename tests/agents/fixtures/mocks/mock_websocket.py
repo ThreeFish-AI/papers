@@ -331,7 +331,7 @@ def assert_websocket_message_sent(
         if isinstance(msg.get("data"), str):
             try:
                 data = json.loads(msg["data"])
-            except:
+            except (json.JSONDecodeError, TypeError):
                 continue
         else:
             data = msg.get("data", {})
@@ -341,4 +341,4 @@ def assert_websocket_message_sent(
                 assert data.get(key) == value, f"Field {key} mismatch"
             return True
 
-    assert False, f"No message of type {expected_type} was sent"
+    raise AssertionError(f"No message of type {expected_type} was sent")
