@@ -1,9 +1,8 @@
 """Translation Agent - 封装翻译功能."""
 
-import os
-from typing import Dict, Any, Optional, List
 import logging
 from pathlib import Path
+from typing import Any
 
 from .base import BaseAgent
 
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 class TranslationAgent(BaseAgent):
     """翻译处理专用 Agent."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化 TranslationAgent.
 
         Args:
@@ -29,7 +28,7 @@ class TranslationAgent(BaseAgent):
             "batch_size": 5000,  # 每批处理的字符数
         }
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """处理翻译请求.
 
         Args:
@@ -55,7 +54,7 @@ class TranslationAgent(BaseAgent):
             }
         )
 
-    async def translate(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def translate(self, params: dict[str, Any]) -> dict[str, Any]:
         """翻译文本内容.
 
         Args:
@@ -110,7 +109,7 @@ class TranslationAgent(BaseAgent):
             logger.error(f"Error in translation: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def _translate_single(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _translate_single(self, params: dict[str, Any]) -> dict[str, Any]:
         """单次翻译.
 
         Args:
@@ -141,7 +140,7 @@ class TranslationAgent(BaseAgent):
         else:
             return result
 
-    async def _translate_batch(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _translate_batch(self, params: dict[str, Any]) -> dict[str, Any]:
         """批量翻译.
 
         Args:
@@ -208,7 +207,7 @@ class TranslationAgent(BaseAgent):
             },
         }
 
-    def _split_content(self, content: str, batch_size: int) -> List[str]:
+    def _split_content(self, content: str, batch_size: int) -> list[str]:
         """将内容分割成批次。
 
         Args:
@@ -280,7 +279,7 @@ class TranslationAgent(BaseAgent):
 
     async def validate_translation(
         self, original: str, translated: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """验证翻译质量.
 
         Args:

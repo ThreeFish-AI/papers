@@ -1,10 +1,9 @@
 """Heartfelt Agent - 封装深度分析和感悟生成功能."""
 
-import os
-from typing import Dict, Any, Optional
 import logging
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from .base import BaseAgent
 
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class HeartfeltAgent(BaseAgent):
     """深度分析专用 Agent."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化 HeartfeltAgent.
 
         Args:
@@ -30,7 +29,7 @@ class HeartfeltAgent(BaseAgent):
             "extract_key_points": True,
         }
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """处理深度分析请求.
 
         Args:
@@ -55,7 +54,7 @@ class HeartfeltAgent(BaseAgent):
             }
         )
 
-    async def analyze(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze(self, params: dict[str, Any]) -> dict[str, Any]:
         """深度分析文档内容.
 
         Args:
@@ -111,8 +110,8 @@ class HeartfeltAgent(BaseAgent):
             return {"success": False, "error": str(e)}
 
     def _process_analysis_result(
-        self, data: Dict[str, Any], original_content: str
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], original_content: str
+    ) -> dict[str, Any]:
         """处理分析结果.
 
         Args:
@@ -157,7 +156,7 @@ class HeartfeltAgent(BaseAgent):
 
         return processed_data
 
-    async def _save_analysis(self, paper_id: str, data: Dict[str, Any]):
+    async def _save_analysis(self, paper_id: str, data: dict[str, Any]):
         """保存分析结果.
 
         Args:
@@ -198,7 +197,7 @@ class HeartfeltAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error saving analysis: {str(e)}")
 
-    async def generate_reading_report(self, paper_id: str) -> Dict[str, Any]:
+    async def generate_reading_report(self, paper_id: str) -> dict[str, Any]:
         """生成阅读报告.
 
         Args:
@@ -219,7 +218,7 @@ class HeartfeltAgent(BaseAgent):
             # 读取分析数据
             import json
 
-            with open(analysis_file, "r", encoding="utf-8") as f:
+            with open(analysis_file, encoding="utf-8") as f:
                 analysis_data = json.load(f)
 
             # 生成报告
@@ -245,7 +244,7 @@ class HeartfeltAgent(BaseAgent):
             logger.error(f"Error generating reading report: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def _generate_report_content(self, analysis_data: Dict[str, Any]) -> str:
+    def _generate_report_content(self, analysis_data: dict[str, Any]) -> str:
         """生成报告内容.
 
         Args:
@@ -255,7 +254,7 @@ class HeartfeltAgent(BaseAgent):
             报告内容
         """
         report_lines = [
-            f"# 论文深度阅读报告\n",
+            "# 论文深度阅读报告\n",
             f"**论文ID**: {analysis_data['paper_id']}\n",
             f"**分析时间**: {analysis_data['analysis_timestamp']}\n",
         ]

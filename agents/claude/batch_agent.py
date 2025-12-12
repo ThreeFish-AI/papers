@@ -1,11 +1,11 @@
 """Batch Processing Agent - 封装批量处理功能."""
 
-import os
 import asyncio
-from typing import Dict, Any, Optional, List
 import logging
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from .base import BaseAgent
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class BatchProcessingAgent(BaseAgent):
     """批量处理专用 Agent."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化 BatchProcessingAgent.
 
         Args:
@@ -30,7 +30,7 @@ class BatchProcessingAgent(BaseAgent):
             "progress_callback": None,  # 进度回调函数
         }
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """处理批量请求.
 
         Args:
@@ -54,7 +54,7 @@ class BatchProcessingAgent(BaseAgent):
             }
         )
 
-    async def batch_process(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def batch_process(self, params: dict[str, Any]) -> dict[str, Any]:
         """批量处理文档.
 
         Args:
@@ -123,7 +123,7 @@ class BatchProcessingAgent(BaseAgent):
             "results": all_results,
         }
 
-    async def _validate_files(self, files: List[str]) -> Dict[str, Any]:
+    async def _validate_files(self, files: list[str]) -> dict[str, Any]:
         """验证文件列表.
 
         Args:
@@ -149,7 +149,7 @@ class BatchProcessingAgent(BaseAgent):
             "invalid": invalid_files,
         }
 
-    def _create_batches(self, files: List[str], batch_size: int) -> List[List[str]]:
+    def _create_batches(self, files: list[str], batch_size: int) -> list[list[str]]:
         """创建文件批次.
 
         Args:
@@ -167,8 +167,8 @@ class BatchProcessingAgent(BaseAgent):
         return batches
 
     async def _process_batch(
-        self, files: List[str], workflow: str, options: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, files: list[str], workflow: str, options: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """处理单个批次.
 
         Args:
@@ -217,7 +217,7 @@ class BatchProcessingAgent(BaseAgent):
 
     async def _process_single_file(
         self, file_path: str, workflow: str, retry_count: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """处理单个文件，支持重试.
 
         Args:
@@ -313,8 +313,8 @@ class BatchProcessingAgent(BaseAgent):
         return "general"
 
     def _calculate_stats(
-        self, results: List[Dict[str, Any]], start_time: datetime, end_time: datetime
-    ) -> Dict[str, Any]:
+        self, results: list[dict[str, Any]], start_time: datetime, end_time: datetime
+    ) -> dict[str, Any]:
         """计算处理统计信息.
 
         Args:
@@ -354,7 +354,7 @@ class BatchProcessingAgent(BaseAgent):
             "end_time": end_time.isoformat(),
         }
 
-    async def get_batch_status(self, batch_id: str) -> Dict[str, Any]:
+    async def get_batch_status(self, batch_id: str) -> dict[str, Any]:
         """获取批次处理状态.
 
         Args:
@@ -367,7 +367,7 @@ class BatchProcessingAgent(BaseAgent):
         # 例如从数据库或文件中读取状态
         pass
 
-    async def cancel_batch(self, batch_id: str) -> Dict[str, Any]:
+    async def cancel_batch(self, batch_id: str) -> dict[str, Any]:
         """取消批次处理.
 
         Args:
