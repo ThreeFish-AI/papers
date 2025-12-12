@@ -1,7 +1,6 @@
 """Mock configurations for file operations."""
 
 import json
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
