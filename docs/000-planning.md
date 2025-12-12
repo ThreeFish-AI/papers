@@ -6,7 +6,7 @@
 
 - ✅ Agent 层架构（6 个专用 Agent）
 - ✅ API 服务（FastAPI）
-- ✅ MCP Skills 集成（7 个技能）
+- ✅ Claude Skills 集成（7 个技能）
 - ✅ 基础测试体系（39 个测试文件）
 - ✅ CI/CD 流程（GitHub Actions）
 - ✅ Docker 部署配置
@@ -30,7 +30,7 @@ timeline
 #### 已使用技术
 
 - **后端**: Python 3.12+, FastAPI, Pydantic
-- **AI 集成**: Claude API, MCP (Model Context Protocol)
+- **AI 集成**: Claude API, Claude Skills, MCP (Model Context Protocol)
 - **数据处理**: pypdf2, pdfplumber, Pillow
 - **部署**: Docker, docker-compose, Nginx
 
