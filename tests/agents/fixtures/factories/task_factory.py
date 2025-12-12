@@ -1,17 +1,18 @@
 """Factory for generating test data for tasks."""
 
-import factory
-from factory import fuzzy, SubFactory
 from datetime import datetime, timedelta
-import uuid
+
+import factory
+from factory import SubFactory, fuzzy
 
 from agents.api.models.task import (
-    TaskResponse,
+    TaskCreateRequest,
     TaskInfo,
     TaskProgress,
-    TaskCreateRequest,
+    TaskResponse,
     TaskUpdateRequest,
 )
+
 from .paper_factory import PaperInfoFactory
 
 

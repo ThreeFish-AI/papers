@@ -1,27 +1,17 @@
 """Unit tests for PaperService."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, mock_open
-from pathlib import Path
-from fastapi import UploadFile
-from tempfile import NamedTemporaryFile
-import json
 import io
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+from fastapi import UploadFile
+
+from agents.api.models.paper import PaperInfo
 from agents.api.services.paper_service import PaperService
-from agents.api.models.paper import PaperStatus, PaperInfo
-from tests.agents.fixtures.factories.paper_factory import (
-    PaperUploadResponseFactory,
-    PaperStatusFactory,
-    PaperProcessRequestFactory,
-)
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
     patch_file_operations,
-)
-from tests.agents.fixtures.mocks.mock_claude_api import (
-    mock_mcp_skills,
-    get_mock_mcp_skills,
 )
 
 
@@ -102,7 +92,7 @@ class TestPaperService:
     @pytest.mark.asyncio
     async def test_upload_paper_file_save_error(self, paper_service, mock_upload_file):
         """Test paper upload when file save fails."""
-        with patch("builtins.open", side_effect=IOError("Disk full")):
+        with patch("builtins.open", side_effect=OSError("Disk full")):
             with pytest.raises(IOError):
                 await paper_service.upload_paper(mock_upload_file, "test")
 

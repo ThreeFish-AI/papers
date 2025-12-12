@@ -1,22 +1,13 @@
 """Integration tests for API endpoints."""
 
-import pytest
 import asyncio
-import json
-import tempfile
-from pathlib import Path
-from httpx import AsyncClient
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, patch
 
-from agents.api.main import app
-from tests.agents.fixtures.factories.paper_factory import (
-    PaperUploadResponseFactory,
-    PaperStatusFactory,
-    TaskFactory,
-)
+import pytest
+
 from tests.agents.fixtures.mocks.mock_file_operations import (
-    patch_file_operations,
     mock_file_manager,
+    patch_file_operations,
 )
 from tests.agents.fixtures.mocks.mock_websocket import (
     MockWebSocket,
@@ -158,7 +149,6 @@ class TestAPIIntegration:
     async def test_websocket_progress_updates(self, async_client):
         """Test WebSocket progress updates during paper processing."""
         from tests.agents.fixtures.mocks.mock_websocket import (
-            MockWebSocket,
             mock_connection_manager,
             mock_websocket_service,
         )

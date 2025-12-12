@@ -1,7 +1,7 @@
 """Mock configurations for Claude API and MCP Skills."""
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, Any, List, Optional
 
 
 class MockClaudeAPI:
@@ -67,19 +67,19 @@ class MockClaudeAPI:
         # Configure default behavior
         self.messages.create.return_value = self.translation_response
 
-    def set_translation_response(self, response: Optional[Dict[str, Any]] = None):
+    def set_translation_response(self, response: dict[str, Any] | None = None):
         """Set the response for translation requests."""
         if response:
             self.translation_response = response
         self.messages.create.return_value = self.translation_response
 
-    def set_heartfelt_response(self, response: Optional[Dict[str, Any]] = None):
+    def set_heartfelt_response(self, response: dict[str, Any] | None = None):
         """Set the response for heartfelt analysis requests."""
         if response:
             self.heartfelt_response = response
         self.messages.create.return_value = self.heartfelt_response
 
-    async def translate(self, text: str, style: str = "academic") -> Dict[str, Any]:
+    async def translate(self, text: str, style: str = "academic") -> dict[str, Any]:
         """Mock translation method."""
         return {
             "translated_text": self.translation_response["content"][0]["text"],
@@ -88,7 +88,7 @@ class MockClaudeAPI:
             "usage": self.translation_response["usage"],
         }
 
-    async def analyze(self, text: str, depth: str = "standard") -> Dict[str, Any]:
+    async def analyze(self, text: str, depth: str = "standard") -> dict[str, Any]:
         """Mock heartfelt analysis method."""
         return {
             "analysis": self.heartfelt_response["content"][0]["text"],
@@ -330,7 +330,7 @@ class MockMCPSkills:
             }
         return self.skills[skill_name]
 
-    def set_skill_response(self, skill_name: str, response: Dict[str, Any]):
+    def set_skill_response(self, skill_name: str, response: dict[str, Any]):
         """Set custom response for a skill."""
         if skill_name not in self.skills:
             self.skills[skill_name] = AsyncMock()

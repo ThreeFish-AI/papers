@@ -1,24 +1,16 @@
 """Unit tests for papers routes."""
 
+import io
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch, MagicMock
-import json
-import io
 
 from agents.api.main import app
-from agents.api.models.paper import (
-    PaperUploadResponse,
-    PaperStatus,
-    PaperProcessRequest,
-)
 from tests.agents.fixtures.factories.paper_factory import (
-    PaperUploadResponseFactory,
     PaperStatusFactory,
-    PaperProcessRequestFactory,
-    paper_status_data,
+    PaperUploadResponseFactory,
 )
-from tests.agents.fixtures.mocks.mock_file_operations import mock_file_manager
 
 
 @pytest.mark.unit

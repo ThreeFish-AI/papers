@@ -1,20 +1,11 @@
 """Unit tests for WorkflowAgent."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from pathlib import Path
 import asyncio
-import tempfile
-import json
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from agents.claude.workflow_agent import WorkflowAgent
-from agents.claude.pdf_agent import PDFProcessingAgent
-from agents.claude.translation_agent import TranslationAgent
-from agents.claude.heartfelt_agent import HeartfeltAgent
-from tests.agents.fixtures.mocks.mock_claude_api import (
-    get_mock_mcp_skills,
-    mock_mcp_skills,
-)
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
     patch_file_operations,
