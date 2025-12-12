@@ -611,7 +611,6 @@ class PaperService:
             if len(parts) >= 3:
                 # 第一个部分是category，第二个是timestamp，其余是filename
                 category = parts[0]
-                timestamp = parts[1]
                 filename = "_".join(parts[2:])
             else:
                 category = "general"
