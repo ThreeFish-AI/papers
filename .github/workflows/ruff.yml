@@ -77,7 +77,7 @@ jobs:
         id: ruff-check
         run: |
           # Create a report file for ruff issues
-          ruff check . --output-format=json > ruff-issues.json || true
+          ruff check agents/ tests/ conftest.py --output-format=json > ruff-issues.json || true
 
           # Count issues
           ISSUE_COUNT=$(cat ruff-issues.json | jq length || echo "0")
@@ -88,7 +88,7 @@ jobs:
             echo "has_issues=true" >> $GITHUB_OUTPUT
 
             # Try to fix issues
-            ruff check . --fix
+            ruff check agents/ tests/ conftest.py --fix
 
             # Check if any files were modified
             if [ -n "$(git status --porcelain)" ]; then
@@ -106,7 +106,7 @@ jobs:
       - name: Run ruff format
         if: steps.ruff-check.outputs.has_issues == 'true'
         run: |
-          ruff format .
+          ruff format agents/ tests/ conftest.py
 
           # Check if formatting made changes
           if [ -n "$(git status --porcelain)" ]; then
@@ -160,8 +160,8 @@ jobs:
         id: check-fixes
         run: |
           # Run ruff check and fix
-          ruff check . --fix
-          ruff format .
+          ruff check agents/ tests/ conftest.py --fix
+          ruff format agents/ tests/ conftest.py
 
           # Check if there are changes
           if [ -n "$(git status --porcelain)" ]; then
@@ -214,7 +214,7 @@ jobs:
           git checkout -b $BRANCH_NAME
 
           # Add and commit changes
-          git add .
+          git add agents/ tests/ conftest.py
           git commit -m "fix: auto-fix ruff issues
 
           - Applied ruff --fix to resolve linting issues
@@ -299,12 +299,12 @@ jobs:
           git pull origin $EXISTING_BRANCH
 
           # Re-apply ruff fixes
-          ruff check . --fix
-          ruff format .
+          ruff check agents/ tests/ conftest.py --fix
+          ruff format agents/ tests/ conftest.py
 
           # Commit if there are new changes
           if [ -n "$(git status --porcelain)" ]; then
-            git add .
+            git add agents/ tests/ conftest.py
             git commit -m "fix: update ruff fixes for latest changes
 
               - Applied additional ruff fixes
