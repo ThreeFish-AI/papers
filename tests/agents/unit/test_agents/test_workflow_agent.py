@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from agents.claude.base import BaseAgent
 from agents.claude.workflow_agent import WorkflowAgent
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
@@ -48,7 +49,10 @@ class TestWorkflowAgent:
         return pdf_path
 
     @pytest.mark.asyncio
-    async def test_full_workflow_success(self, workflow_agent, test_paper_path):
+    @patch.object(BaseAgent, "call_skill", return_value={"success": True, "data": {}})
+    async def test_full_workflow_success(
+        self, mock_call_skill, workflow_agent, test_paper_path
+    ):
         """Test successful full workflow execution."""
         paper_id = "test_paper_123"
         input_data = {
@@ -73,11 +77,20 @@ class TestWorkflowAgent:
             "data": {"translated_content": "翻译后的内容...", "quality_score": 0.95},
         }
 
+        # Mock heartfelt agent analyze method to avoid ImportError
+        workflow_agent.heartfelt_agent.analyze.return_value = {
+            "success": True,
+            "data": {"analysis": "Deep analysis complete..."},
+        }
+
         with patch_file_operations():
             mock_file_manager.add_file(str(test_paper_path), b"PDF content")
             mock_file_manager.exists(str(test_paper_path))
 
             result = await workflow_agent.process(input_data)
+
+            # Give a moment for the async heartfelt analysis to complete
+            await asyncio.sleep(0.1)
 
             assert result["success"] is True
             assert result["workflow"] == "full"
@@ -88,7 +101,7 @@ class TestWorkflowAgent:
             # Verify sub-agents were called
             workflow_agent.pdf_agent.extract_content.assert_called_once()
             workflow_agent.translation_agent.translate.assert_called_once()
-            workflow_agent._async_heartfelt_analysis.assert_called_once()
+            workflow_agent.heartfelt_agent.analyze.assert_called_once()
             workflow_agent._save_workflow_results.assert_called_once()
 
     @pytest.mark.asyncio
