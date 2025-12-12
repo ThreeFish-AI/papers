@@ -407,3 +407,117 @@ class WorkflowAgent(BaseAgent):
             "failed": failed,
             "results": results,
         }
+
+    async def batch_process_papers(
+        self, paper_paths: list[str], workflow_type: str = "full"
+    ) -> dict[str, Any]:
+        """批量处理多个论文.
+
+        Args:
+            paper_paths: 论文路径列表
+            workflow_type: 工作流类型 (extract_only, translate_only, full)
+
+        Returns:
+            批量处理结果
+        """
+        logger.info(f"Starting batch processing for {len(paper_paths)} papers")
+
+        results = []
+        success_count = 0
+        failure_count = 0
+
+        for paper_path in paper_paths:
+            try:
+                result = await self.process(
+                    {"source_path": paper_path, "workflow": workflow_type}
+                )
+                results.append(result)
+                if result.get("success"):
+                    success_count += 1
+                else:
+                    failure_count += 1
+            except Exception as e:
+                logger.error(f"Failed to process paper {paper_path}: {str(e)}")
+                results.append(
+                    {"success": False, "error": str(e), "paper_path": paper_path}
+                )
+                failure_count += 1
+
+        return {
+            "success": True,
+            "total": len(paper_paths),
+            "success_count": success_count,
+            "failure_count": failure_count,
+            "results": results,
+        }
+
+    async def get_workflow_status(self, paper_id: str) -> dict[str, Any]:
+        """获取工作流状态.
+
+        Args:
+            paper_id: 论文ID
+
+        Returns:
+            工作流状态信息
+        """
+        try:
+            # Load metadata for the paper
+            metadata = await self._load_metadata(paper_id)
+
+            # Extract status information
+            status = metadata.get("status", "unknown")
+            progress = metadata.get("progress", 0)
+            current_stage = metadata.get("current_stage", "unknown")
+            error = metadata.get("error", None)
+
+            # Get stage-specific details
+            stages_completed = metadata.get("stages_completed", [])
+            total_stages = metadata.get(
+                "total_stages", 3
+            )  # extract, translate, heartfelt
+
+            return {
+                "paper_id": paper_id,
+                "status": status,
+                "progress": progress,
+                "current_stage": current_stage,
+                "stages_completed": stages_completed,
+                "total_stages": total_stages,
+                "error": error,
+                "last_updated": metadata.get("last_updated"),
+            }
+        except Exception as e:
+            logger.error(f"Failed to get workflow status for {paper_id}: {str(e)}")
+            return {
+                "paper_id": paper_id,
+                "status": "error",
+                "progress": 0,
+                "current_stage": "unknown",
+                "error": str(e),
+                "last_updated": None,
+            }
+
+    async def _load_metadata(self, paper_id: str) -> dict[str, Any]:
+        """Load metadata for a paper.
+
+        Args:
+            paper_id: The paper ID
+
+        Returns:
+            Metadata dictionary
+        """
+        # For now, return a simple metadata structure
+        # In a real implementation, this would load from a file or database
+        metadata_file = self.papers_dir / f"{paper_id}_metadata.json"
+
+        if metadata_file.exists():
+            import json
+
+            try:
+                with open(metadata_file) as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to load metadata from {metadata_file}: {str(e)}")
+                return {}
+
+        return {}
