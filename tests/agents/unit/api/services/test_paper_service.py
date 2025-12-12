@@ -2,7 +2,7 @@
 
 import io
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 from fastapi import UploadFile
@@ -120,18 +120,21 @@ class TestPaperService:
                     paper_service.workflow_agent.process.return_value = {
                         "task_id": "task_123",
                         "status": "processing",
+                        "success": True,
+                        "result": "Processing started",
                     }
 
                     result = await paper_service.process_paper(paper_id, workflow)
 
-                    assert result["task_id"] == "task_123"
-                    assert result["status"] == "processing"
+                    assert result["paper_id"] == paper_id
+                    assert result["workflow"] == workflow
+                    assert result["status"] == "completed"
                     paper_service.workflow_agent.process.assert_called_once_with(
                         {
                             "source_path": str(source_path),
                             "workflow": workflow,
                             "paper_id": paper_id,
-                            "options": None,
+                            "options": {},
                         }
                     )
 
@@ -181,6 +184,8 @@ class TestPaperService:
                     paper_service.workflow_agent.process.return_value = {
                         "task_id": "task_456",
                         "status": "processing",
+                        "success": True,
+                        "result": "Processing started with options",
                     }
 
                     result = await paper_service.process_paper(
@@ -195,7 +200,9 @@ class TestPaperService:
                             "options": options,
                         }
                     )
-                assert result["task_id"] == "task_456"
+                assert result["paper_id"] == paper_id
+                assert result["workflow"] == workflow
+                assert result["status"] == "completed"
 
     @pytest.mark.asyncio
     async def test_get_paper_status(self, paper_service):
@@ -444,7 +451,9 @@ class TestPaperService:
             str(source_path), b"PDF content" * 1000
         )  # Large content
         # Mock stat().st_size
-        source_path.stat = lambda: type("stat", (), {"st_size": 1024000})()
+        mock_stat = MagicMock()
+        mock_stat.st_size = 1024000
+        source_path.stat = PropertyMock(return_value=mock_stat)
 
         with patch.object(paper_service, "_get_source_path", return_value=source_path):
             with patch.object(
