@@ -428,25 +428,26 @@ class TestWorkflowAgent:
         paper_paths = ["/test/paper1.pdf", "/test/paper2.pdf", "/test/paper3.pdf"]
 
         # Mock individual processing
-        workflow_agent.process.side_effect = [
-            {"success": True, "paper_id": "paper1"},
-            {"success": True, "paper_id": "paper2"},
-            {"success": False, "error": "Processing failed"},
-        ]
+        with patch.object(workflow_agent, "process") as mock_process:
+            mock_process.side_effect = [
+                {"success": True, "paper_id": "paper1"},
+                {"success": True, "paper_id": "paper2"},
+                {"success": False, "error": "Processing failed"},
+            ]
 
-        with patch_file_operations():
-            # Add files to mock file system
-            for path in paper_paths[:2]:
-                mock_file_manager.add_file(path, b"PDF content")
-                mock_file_manager.exists(path)
+            with patch_file_operations():
+                # Add files to mock file system
+                for path in paper_paths[:2]:
+                    mock_file_manager.add_file(path, b"PDF content")
+                    mock_file_manager.exists(path)
 
-            result = await workflow_agent.batch_process_papers(
-                paper_paths, "extract_only"
-            )
+                result = await workflow_agent.batch_process_papers(
+                    paper_paths, "extract_only"
+                )
 
-            assert len(result["results"]) == 3
-            assert result["success_count"] == 2
-            assert result["failure_count"] == 1
+                assert len(result["results"]) == 3
+                assert result["success_count"] == 2
+                assert result["failure_count"] == 1
 
     @pytest.mark.asyncio
     async def test_get_workflow_status(self, workflow_agent, temp_dir):

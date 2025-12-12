@@ -187,10 +187,10 @@ def get_category_from_path(file_path: str) -> str:
     """
     # 定义关键词映射
     category_keywords = {
+        "multi-agent": ["multi-agent", "swarm", "collective", "distributed"],
         "llm-agents": ["agent", "llm", "language model", "gpt", "claude"],
         "context-engineering": ["context", "prompt", "retrieval", "rag"],
         "knowledge-graphs": ["knowledge", "graph", "ontology", "semantic"],
-        "multi-agent": ["multi-agent", "swarm", "collective", "distributed"],
         "reasoning": ["reasoning", "inference", "logic", "deduction"],
         "planning": ["planning", "strategy", "goal", "hierarchical"],
     }
