@@ -7,6 +7,7 @@
 ## 工作流文件
 
 - **`workflows/ci.yml`**: 主要的 CI/CD 流水线配置
+- **`workflows/auto-fix-ruff.yml`**: Ruff 代码质量自动修复工作流
 
 ## 工作流任务
 
@@ -59,6 +60,22 @@
   - 创建 GitHub Release
   - 生成 changelog
 
+### 7. Ruff 自动修复任务 (auto-fix-ruff)
+
+- **触发条件**: 所有分支的 push 事件
+- **Python 版本**: 3.12
+- **执行内容**:
+  - 检查 Ruff 代码质量问题
+  - 自动修复可修复的问题 (ruff check --fix)
+  - 应用代码格式化 (ruff format)
+  - 创建/更新包含修复的 PR
+  - 发送通知 (Slack/邮件，可选)
+- **特性**:
+  - 智能分支管理 (创建带时间戳的修复分支)
+  - PR 去重 (更新现有 PR 而非创建新的)
+  - 并发控制 (取消重复运行)
+  - 双语通知支持 (中文消息)
+
 ## 必需的 Secrets
 
 在 GitHub 仓库设置中配置以下 secrets：
@@ -67,6 +84,10 @@
 ANTHROPIC_API_KEY    # API 认证密钥
 DOCKER_USERNAME      # Docker Hub 用户名
 DOCKER_PASSWORD      # Docker Hub 密码/token
+SLACK_WEBHOOK_URL    # Slack 通知 Webhook URL (可选)
+EMAIL_USERNAME       # 邮件通知用户名 (可选)
+EMAIL_PASSWORD       # 邮件通知密码 (可选)
+EMAIL_FROM          # 邮件发送地址 (可选，默认为 github.actor)
 ```
 
 ## 环境变量
@@ -75,6 +96,11 @@ DOCKER_PASSWORD      # Docker Hub 密码/token
 
 - `PYTHON_VERSION`: Python 版本 (默认: 3.12)
 - `ANTHROPIC_API_KEY`: 从 secrets 获取
+- `PR_LABELS`: PR 标签 (默认: "auto-fix,ruff")
+- `NOTIFICATION_ENABLED`: 是否启用通知 (默认: false)
+- `EMAIL_NOTIFICATIONS`: 邮件通知接收列表 (可选)
+- `SMTP_SERVER`: SMTP 服务器地址 (默认: smtp.gmail.com)
+- `SMTP_PORT`: SMTP 端口 (默认: 587)
 - 其他测试环境变量从 `.env.example` 复制
 
 ## 测试覆盖率
@@ -82,6 +108,13 @@ DOCKER_PASSWORD      # Docker Hub 密码/token
 - 最低覆盖率要求: 80%
 - 覆盖率报告生成位置: `htmlcov/`
 - XML 报告: `coverage.xml`
+
+## 工作流集成说明
+
+`auto-fix-ruff.yml` 工作流与主要的 `ci.yml` 工作流协同工作：
+- `auto-fix-ruff` 在所有分支 push 时主动修复代码质量问题
+- `ci` 在 PR 和 main/master 分支时进行全面的检查和测试
+- 两者结合确保代码质量的同时减少手动修复工作
 
 ## 故障排除
 
@@ -101,8 +134,21 @@ DOCKER_PASSWORD      # Docker Hub 密码/token
    - 查看测试日志
    - 检查测试环境配置
 
+4. **PR 创建失败**
+   - 检查 GITHUB_TOKEN 权限
+   - 确认分支不存在命名冲突
+
+5. **通知配置问题**
+   - 验证 SLACK_WEBHOOK_URL 有效性
+   - 检查 SMTP 配置和认证
+
+6. **并发运行问题**
+   - 查看并发组配置
+   - 检查是否有取消的运行
+
 ### 调试技巧
 
 - 使用 GitHub Actions 的调试功能
 - 查看 workflow 运行日志
 - 本地复现失败的测试命令
+- 检查 auto-fix 工作流的 Step Summary 获取详细报告
