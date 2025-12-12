@@ -69,10 +69,7 @@ PAPERS_DIR=./papers
 
 ```bash
 # 启动 API 服务器
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
-
-# 或使用 Make 命令（如果存在）
-make dev
+uvicorn agents.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Docker 开发环境
@@ -81,13 +78,16 @@ make dev
 
 ```bash
 # 启动开发环境
-docker-compose -f docker-compose.dev.yml up
+docker-compose up
 
 # 后台运行
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose up -d
+
+# 启动包含 UI 的完整环境
+docker-compose --profile ui up
 
 # 查看日志
-docker-compose -f docker-compose.dev.yml logs -f
+docker-compose logs -f
 ```
 
 ## 代码组织原则
@@ -136,8 +136,8 @@ from pydantic import BaseModel
 
 # 本地模块导入
 from agents.claude.base import BaseAgent
-from core.config import settings
-from api.models.paper import Paper
+from agents.core.config import settings
+from agents.api.models.paper import Paper
 ```
 
 ### 代码质量保证
@@ -204,11 +204,6 @@ ruff check --fix .
 ruff format .
 ```
 
-#### 工作流说明
-
-- 自动修复工作流不会在 `master` 和 `release/**` 分支上运行
-- 修复 PR 会自动添加 `auto-fix` 和 `ruff` 标签
-- 所有修复都会经过完整的 CI 测试流程
 
 ## Agent 开发指南
 
@@ -256,7 +251,7 @@ class CustomAgent(BaseAgent):
 #### 2. Agent 配置
 
 ```python
-# 在 core/config.py 中添加配置
+# 在 agents/core/config.py 中添加配置
 class CustomAgentConfig(BaseSettings):
     enabled: bool = True
     max_retries: int = 3
@@ -347,10 +342,10 @@ async def process_batch(self, items: List[Dict]) -> List[Dict]:
 #### 1. 路由定义
 
 ```python
-# api/routes/custom.py
+# agents/api/routes/custom.py
 from fastapi import APIRouter, Depends, HTTPException
-from api.services.custom_service import CustomService
-from api.models.custom import CustomRequest, CustomResponse
+from agents.api.services.custom_service import CustomService
+from agents.api.models.custom import CustomRequest, CustomResponse
 
 router = APIRouter(prefix="/api/custom", tags=["custom"])
 
@@ -370,9 +365,9 @@ async def process_data(
 #### 2. 服务层
 
 ```python
-# api/services/custom_service.py
+# agents/api/services/custom_service.py
 from agents.claude.custom_agent import CustomAgent
-from core.config import settings
+from agents.core.config import settings
 
 class CustomService:
     def __init__(self):
@@ -387,7 +382,7 @@ class CustomService:
 #### 3. 数据模型
 
 ```python
-# api/models/custom.py
+# agents/api/models/custom.py
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 
@@ -418,10 +413,48 @@ async def protected_route(user=Depends(get_current_user)):
     return {"message": f"Hello {user}"}
 ```
 
-#### 2. 中间件使用
+#### 4. WebSocket 支持
 
 ```python
-# api/main.py
+# agents/api/routes/websocket.py
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import List
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    async def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_message(f"Received: {data}", websocket)
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+```
+
+#### 5. 中间件使用
+
+```python
+# agents/api/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -467,24 +500,24 @@ markers = [
 ### 测试结构
 
 ```
-tests/
+tests/agents/
 ├── unit/               # 单元测试
-│   ├── test_agents/
-│   ├── test_api/
-│   └── test_core/
+│   ├── agents/
+│   ├── api/
+│   └── core/
 ├── integration/        # 集成测试
-│   ├── test_workflows/
-│   └── test_endpoints/
+│   ├── workflows/
+│   └── endpoints/
 ├── fixtures/           # 测试数据
-│   ├── sample_pdfs/
-│   └── mock_responses/
+│   ├── factories/
+│   └── mocks/
 └── conftest.py         # 测试配置
 ```
 
 ### 单元测试示例
 
 ```python
-# tests/unit/test_agents/test_custom_agent.py
+# tests/agents/unit/agents/test_custom_agent.py
 import pytest
 from agents.claude.custom_agent import CustomAgent
 
@@ -534,75 +567,84 @@ def sample_pdf():
     return "tests/fixtures/sample_papers/sample.pdf"
 ```
 
+## MCP 开发
+
+### MCP (Model Context Protocol) 集成
+
+项目使用 MCP 工具来扩展 Claude 的能力，包括：
+
+#### 可用的 MCP 工具
+
+- **pdf-reader**: PDF 文档解析和内容提取
+- **zh-translator**: 中文学术文档翻译
+- **web-translator**: 网页内容抓取和转换
+- **data-extractor**: 数据提取和网页抓取
+- **batch-processor**: 批量文档处理
+
+#### MCP 配置
+
+MCP 工具配置位于 `.claude/` 目录：
+
+```yaml
+# .claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "data-extractor": {
+      "command": "mcp-data-extractor",
+      "args": []
+    }
+  }
+}
+```
+
+#### 在 Agent 中使用 MCP 技能
+
+```python
+from agents.claude.base import BaseAgent
+
+class PDFProcessingAgent(BaseAgent):
+    def __init__(self, config):
+        super().__init__(config)
+        self.required_skills = ["pdf-reader", "zh-translator"]
+
+    async def process_paper(self, pdf_path: str) -> dict:
+        # 使用 PDF 读取技能
+        result = await self.call_skill("pdf-reader", {"file_path": pdf_path})
+
+        # 使用翻译技能
+        if result.get("success"):
+            translated = await self.call_skill(
+                "zh-translator",
+                {"content": result["content"]}
+            )
+            return translated
+
+        return result
+```
+
 ## 调试和故障排除
 
 ### 日志配置
 
 ```python
-# core/logging.py
+# agents/core/logging.py
 import logging
-import sys
-from pathlib import Path
 
-def setup_logging(log_level: str = "INFO", log_file: str = None):
-    """配置日志"""
-    # 创建格式化器
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-
-    # 控制台处理器
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
-
-    # 根日志器
-    root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, log_level.upper()))
-    root_logger.addHandler(console_handler)
-
-    # 文件处理器（可选）
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 ```
 
-### 常见问题排查
+### 常见问题
 
-#### 1. Agent 无法启动
+1. **Agent 无法启动**: 检查 API Key 配置和 MCP 工具是否安装
+2. **技能调用失败**: 验证技能名称和参数格式
+3. **性能问题**: 使用 `ruff` 分析代码，检查异步操作
 
-```python
-# 检查配置
-def debug_agent_config(agent_class):
-    """调试 Agent 配置"""
-    print(f"Agent class: {agent_class.__name__}")
-    print(f"Required skills: {agent_class.required_skills}")
-    print(f"Config schema: {agent_class.config_schema}")
-```
-
-#### 2. 技能调用失败
+### 性能分析
 
 ```python
-# 技能调用调试
-async def debug_skill_call(agent, skill_name, params):
-    """调试技能调用"""
-    print(f"Calling skill: {skill_name}")
-    print(f"Parameters: {params}")
-
-    try:
-        result = await agent.call_skill(skill_name, params)
-        print(f"Result: {result}")
-        return result
-    except Exception as e:
-        print(f"Error: {e}")
-        print(f"Error type: {type(e)}")
-        raise
-```
-
-#### 3. 性能问题
-
-```python
-# 性能分析
 import time
 from functools import wraps
 
@@ -611,11 +653,45 @@ def timing_decorator(func):
     async def wrapper(*args, **kwargs):
         start = time.time()
         result = await func(*args, **kwargs)
-        end = time.time()
-        print(f"{func.__name__} took {end - start:.2f} seconds")
+        print(f"{func.__name__} took {time.time() - start:.2f}s")
         return result
     return wrapper
 ```
+
+## 安全考虑
+
+### API 安全
+
+- **API Key 管理**: 使用环境变量存储敏感信息
+- **输入验证**: 对所有用户输入进行验证和清理
+- **文件安全**: 限制上传文件类型和大小
+- **访问控制**: 实施适当的认证和授权
+
+### 数据保护
+
+```python
+# 敏感数据保护示例
+import os
+from cryptography.fernet import Fernet
+
+class SecureConfig:
+    def __init__(self):
+        self.key = os.environ.get("ENCRYPTION_KEY")
+        self.cipher = Fernet(self.key.encode())
+
+    def encrypt_api_key(self, api_key: str) -> str:
+        return self.cipher.encrypt(api_key.encode()).decode()
+
+    def decrypt_api_key(self, encrypted_key: str) -> str:
+        return self.cipher.decrypt(encrypted_key.encode()).decode()
+```
+
+### 最佳实践
+
+- 定期更新依赖包
+- 使用 HTTPS 进行通信
+- 实施日志审计
+- 定期进行安全审查
 
 ## 贡献指南
 
@@ -725,101 +801,25 @@ twine upload dist/*
 
 ## 性能优化
 
-### Agent 优化
+### 关键优化点
 
-1. **并发处理**
+1. **并发处理**: 使用 `asyncio.Semaphore` 限制并发数
+2. **缓存机制**: 使用 `functools.lru_cache` 缓存频繁访问的数据
+3. **响应压缩**: 添加 `GZipMiddleware` 减少传输大小
+4. **异步操作**: 确保所有 I/O 操作都是异步的
 
-```python
-# 使用信号量限制并发
-semaphore = asyncio.Semaphore(max_concurrent)
-
-async def process_with_limit(item):
-    async with semaphore:
-        return await process(item)
-```
-
-2. **缓存策略**
-
-```python
-from functools import lru_cache
-
-class CachedAgent(BaseAgent):
-    @lru_cache(maxsize=128)
-    async def get_cached_result(self, key):
-        # 缓存结果
-        pass
-```
-
-### API 优化
-
-1. **异步数据库操作**
-
-```python
-async def get_papers_fast():
-    """快速获取论文列表"""
-    # 使用异步查询
-    results = await db.fetch_all(query)
-    return results
-```
-
-2. **响应压缩**
-
-```python
-from fastapi.middleware.gzip import GZipMiddleware
-
-app.add_middleware(GZipMiddleware, minimum_size=1000)
-```
-
-## 维护任务
+## 维护与监控
 
 ### 定期维护
+- 每日检查错误日志
+- 每周更新依赖包
+- 每月清理临时文件
+- 定期备份 `papers/` 目录
 
-- **每日**：检查错误日志
-- **每周**：更新依赖包
-- **每月**：清理临时文件和日志
-- **每季度**：安全审计
-
-### 监控指标
-
+### 监控要点
 - API 响应时间
 - 错误率
-- 内存使用
-- 磁盘空间
-- 请求量
+- 内存和磁盘使用
 
-### 备份策略
-
-```bash
-# 备份脚本示例
-#!/bin/bash
-DATE=$(date +%Y%m%d)
-tar -czf backup_${DATE}.tar.gz papers/ logs/
-aws s3 cp backup_${DATE}.tar.gz s3://backup-bucket/
-```
-
-## 故障恢复
-
-### 应急响应流程
-
-1. **发现问题**
-
-   - 监控告警
-   - 用户反馈
-   - 定期检查
-
-2. **快速响应**
-
-   - 定位问题
-   - 评估影响
-   - 通知相关人员
-
-3. **问题解决**
-
-   - 实施修复
-   - 验证解决
-   - 恢复服务
-
-4. **事后分析**
-   - 根因分析
-   - 改进措施
-   - 文档更新
+### 应急响应
+1. 监控告警 → 2. 定位问题 → 3. 实施修复 → 4. 复盘改进
