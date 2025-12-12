@@ -218,7 +218,7 @@ def mock_heartfelt_agent():
 
 @pytest.fixture
 def mock_skills():
-    """Mock MCP Skills."""
+    """Mock Claude Skills."""
     with patch("claude_agent_sdk.tools.Skill") as mock_skill:
         # Mock pdf-reader skill
         pdf_skill = AsyncMock()
