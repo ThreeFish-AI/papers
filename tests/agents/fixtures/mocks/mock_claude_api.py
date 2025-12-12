@@ -1,4 +1,4 @@
-"""Mock configurations for Claude API and MCP Skills."""
+"""Mock configurations for Claude API and Claude Skills."""
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -98,8 +98,8 @@ class MockClaudeAPI:
         }
 
 
-class MockMCPSkills:
-    """Mock MCP Skills for testing."""
+class MockClaudeSkills:
+    """Mock Claude Skills for testing."""
 
     def __init__(self):
         self.skills = {}
@@ -345,7 +345,7 @@ class MockMCPSkills:
 
 # Global mock instances
 mock_claude_api = MockClaudeAPI()
-mock_mcp_skills = MockMCPSkills()
+mock_claude_skills = MockClaudeSkills()
 
 
 def get_mock_claude_api() -> MockClaudeAPI:
@@ -353,9 +353,9 @@ def get_mock_claude_api() -> MockClaudeAPI:
     return mock_claude_api
 
 
-def get_mock_mcp_skills() -> MockMCPSkills:
-    """Get the global mock MCP skills instance."""
-    return mock_mcp_skills
+def get_mock_claude_skills() -> MockClaudeSkills:
+    """Get the global mock Claude skills instance."""
+    return mock_claude_skills
 
 
 # Decorator for using mocks in tests
@@ -369,7 +369,7 @@ def with_mocks(test_func):
         with patch("claude_agent_sdk.tools.Skill") as mock_skill_class:
 
             def skill_side_effect(skill_name, **kwargs):
-                return mock_mcp_skills.get_skill(skill_name)
+                return mock_claude_skills.get_skill(skill_name)
 
             mock_skill_class.side_effect = skill_side_effect
 
