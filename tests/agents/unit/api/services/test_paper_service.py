@@ -2,7 +2,7 @@
 
 import io
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import UploadFile
@@ -519,7 +519,6 @@ class TestPaperService:
         from tests.agents.fixtures.mocks.mock_file_operations import (
             get_mock_file_manager,
         )
-        from unittest.mock import PropertyMock
 
         paper_id = "test_paper_123"
         metadata = {
