@@ -65,7 +65,7 @@ async def get_task(
         task = await service.get_task(task_id)
         return task
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting task {task_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"获取任务失败: {str(e)}") from e
@@ -85,7 +85,7 @@ async def cancel_task(
         result = await service.cancel_task(task_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error canceling task {task_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"取消任务失败: {str(e)}") from e
@@ -107,7 +107,7 @@ async def get_task_logs(
         logs = await service.get_task_logs(task_id, lines)
         return {"task_id": task_id, "logs": logs}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting task logs {task_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"获取日志失败: {str(e)}") from e

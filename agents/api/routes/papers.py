@@ -65,7 +65,7 @@ async def process_paper(
         result = await service.process_paper(paper_id, request.workflow)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error processing paper {paper_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}") from e
@@ -85,7 +85,7 @@ async def get_paper_status(
         status = await service.get_status(paper_id)
         return status
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting paper status {paper_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"获取状态失败: {str(e)}") from e
@@ -112,7 +112,7 @@ async def get_paper_content(
         content = await service.get_content(paper_id, content_type)
         return content
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting paper content {paper_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"获取内容失败: {str(e)}") from e
@@ -158,7 +158,7 @@ async def delete_paper(
         result = await service.delete_paper(paper_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error deleting paper {paper_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}") from e
@@ -201,7 +201,7 @@ async def get_paper_report(
         report = await service.get_paper_report(paper_id)
         return report
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting paper report {paper_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"获取报告失败: {str(e)}") from e

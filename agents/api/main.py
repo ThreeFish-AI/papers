@@ -7,6 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+# 导入并注册路由
+from agents.api.routes import papers, tasks, websocket
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -78,9 +81,6 @@ async def health_check():
     """健康检查接口."""
     return {"status": "healthy", "service": "agentic-ai-papers-api", "version": "1.0.0"}
 
-
-# 导入并注册路由
-from agents.api.routes import papers, tasks, websocket
 
 app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
