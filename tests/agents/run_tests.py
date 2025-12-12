@@ -96,8 +96,9 @@ def main():
     args = parse_arguments()
 
     # Get script location and project root
+    # script is at tests/agents/run_tests.py, so we need to go up two levels
     script_dir = Path(__file__).parent
-    project_root = script_dir.parent
+    project_root = script_dir.parent.parent
 
     # Store and change working directory
     original_cwd = os.getcwd()
