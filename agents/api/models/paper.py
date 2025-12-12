@@ -1,6 +1,6 @@
 """Paper related data models."""
 
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -19,7 +19,7 @@ class PaperProcessRequest(BaseModel):
     """论文处理请求模型."""
 
     workflow: str = Field(default="full", description="处理工作流类型")
-    options: dict[str, Any] | None = Field(default=None, description="处理选项")
+    options: Optional[dict[str, Any]] = Field(default=None, description="处理选项")
 
     class Config:
         schema_extra = {
@@ -38,10 +38,10 @@ class PaperStatus(BaseModel):
     workflows: dict[str, dict[str, Any]] = Field(
         default_factory=dict, description="各工作流状态"
     )
-    upload_time: str | None = Field(None, description="上传时间")
-    updated_at: str | None = Field(None, description="更新时间")
-    category: str | None = Field(None, description="论文分类")
-    filename: str | None = Field(None, description="文件名")
+    upload_time: Optional[str] = Field(None, description="上传时间")
+    updated_at: Optional[str] = Field(None, description="更新时间")
+    category: Optional[str] = Field(None, description="论文分类")
+    filename: Optional[str] = Field(None, description="文件名")
 
     class Config:
         schema_extra = {
@@ -65,11 +65,11 @@ class PaperContent(BaseModel):
     paper_id: str = Field(..., description="论文ID")
     content_type: str = Field(..., description="内容类型")
     format: str = Field(..., description="内容格式")
-    content: str | None = Field(None, description="内容文本")
-    file_path: str | None = Field(None, description="文件路径")
-    word_count: int | None = Field(None, description="字数")
-    size: int | None = Field(None, description="文件大小")
-    metadata: dict[str, Any] | None = Field(None, description="元数据")
+    content: Optional[str] = Field(None, description="内容文本")
+    file_path: Optional[str] = Field(None, description="文件路径")
+    word_count: Optional[int] = Field(None, description="字数")
+    size: Optional[int] = Field(None, description="文件大小")
+    metadata: Optional[dict[str, Any]] = Field(None, description="元数据")
 
 
 class PaperInfo(BaseModel):
@@ -80,7 +80,7 @@ class PaperInfo(BaseModel):
     category: str = Field(..., description="分类")
     status: str = Field(..., description="状态")
     upload_time: str = Field(..., description="上传时间")
-    updated_at: str | None = Field(None, description="更新时间")
+    updated_at: Optional[str] = Field(None, description="更新时间")
     size: int = Field(..., description="文件大小")
 
 

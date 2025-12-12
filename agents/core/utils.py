@@ -8,7 +8,7 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Dict, List, Callable, Union
 
 logger = logging.getLogger(__name__)
 
@@ -84,11 +84,12 @@ def format_file_size(size_bytes: int) -> str:
     Returns:
         格式化的大小字符串
     """
+    size = float(size_bytes)  # Convert to float for division
     for unit in ["B", "KB", "MB", "GB", "TB"]:
-        if size_bytes < 1024.0:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024.0
-    return f"{size_bytes:.1f} PB"
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} PB"
 
 
 def extract_text_summary(text: str, max_length: int = 200) -> str:
@@ -123,7 +124,7 @@ def extract_text_summary(text: str, max_length: int = 200) -> str:
     return summary
 
 
-def validate_pdf_file(file_path: str) -> dict[str, Any]:
+def validate_pdf_file(file_path: str) -> Dict[str, Any]:
     """验证 PDF 文件.
 
     Args:
@@ -132,7 +133,12 @@ def validate_pdf_file(file_path: str) -> dict[str, Any]:
     Returns:
         验证结果
     """
-    result = {"valid": False, "error": None, "size": 0, "pages": 0}
+    result: Dict[str, Union[bool, str, int, None]] = {
+        "valid": False,
+        "error": None,
+        "size": 0,
+        "pages": 0,
+    }
 
     try:
         # 检查文件是否存在
@@ -150,7 +156,7 @@ def validate_pdf_file(file_path: str) -> dict[str, Any]:
 
         # 尝试读取 PDF 文件信息
         try:
-            import pypdf2
+            import pypdf2  # type: ignore
 
             with open(file_path, "rb") as f:
                 pdf_reader = pypdf2.PdfReader(f)
@@ -252,8 +258,8 @@ def merge_dicts(*dicts: dict[str, Any]) -> dict[str, Any]:
 
 
 def flatten_dict(
-    d: dict[str, Any], parent_key: str = "", sep: str = "."
-) -> dict[str, Any]:
+    d: Dict[str, Any], parent_key: str = "", sep: str = "."
+) -> Dict[str, Any]:
     """扁平化字典.
 
     Args:
@@ -264,7 +270,7 @@ def flatten_dict(
     Returns:
         扁平化的字典
     """
-    items = []
+    items: List[tuple[str, Any]] = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
         if isinstance(v, dict):
@@ -274,7 +280,7 @@ def flatten_dict(
     return dict(items)
 
 
-def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
+def retry_on_failure(max_retries: int = 3, delay: float = 1.0) -> Callable[..., Any]:
     """重试装饰器.
 
     Args:
@@ -282,9 +288,9 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
         delay: 重试延迟（秒）
     """
 
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            last_error = None
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        async def wrapper(*args, **kwargs) -> Any:
+            last_error: Exception | None = None
             for attempt in range(max_retries + 1):
                 try:
                     return await func(*args, **kwargs)
@@ -297,7 +303,7 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
                         await asyncio.sleep(delay * (2**attempt))  # 指数退避
                     else:
                         logger.error(f"All {max_retries + 1} attempts failed")
-            raise last_error
+            raise last_error if last_error is not None else Exception("Unknown error")
 
         return wrapper
 

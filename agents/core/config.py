@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 
@@ -55,10 +55,10 @@ class Settings:
     WS_CONNECTION_TIMEOUT: int = int(os.getenv("WS_CONNECTION_TIMEOUT", "600"))
 
     # 数据库设置（保留但暂不使用）
-    DATABASE_URL: str | None = os.getenv("DATABASE_URL")
+    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL")
 
     # Redis 设置（保留但暂不使用）
-    REDIS_URL: str | None = os.getenv("REDIS_URL")
+    REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
 
     # 安全设置
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-this")
@@ -67,7 +67,9 @@ class Settings:
     )
 
     # CORS 设置
-    CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(
+        ","
+    )
 
     # 日志设置
     LOG_DIR: str = os.getenv("LOG_DIR", "logs")
