@@ -1,16 +1,17 @@
 """Paper service for managing papers."""
 
+import logging
 import os
 import shutil
 from datetime import datetime
-from typing import Dict, Any, Optional, List
 from pathlib import Path
-from fastapi import UploadFile
-import logging
+from typing import Any
 
-from agents.claude.workflow_agent import WorkflowAgent
+from fastapi import UploadFile
+
 from agents.claude.batch_agent import BatchProcessingAgent
 from agents.claude.heartfelt_agent import HeartfeltAgent
+from agents.claude.workflow_agent import WorkflowAgent
 from agents.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class PaperService:
         self.batch_agent = BatchProcessingAgent({"papers_dir": str(self.papers_dir)})
         self.heartfelt_agent = HeartfeltAgent({"papers_dir": str(self.papers_dir)})
 
-    async def upload_paper(self, file: UploadFile, category: str) -> Dict[str, Any]:
+    async def upload_paper(self, file: UploadFile, category: str) -> dict[str, Any]:
         """处理文件上传.
 
         Args:
@@ -84,7 +85,7 @@ class PaperService:
             logger.error(f"Error uploading paper: {str(e)}")
             raise
 
-    async def process_paper(self, paper_id: str, workflow: str) -> Dict[str, Any]:
+    async def process_paper(self, paper_id: str, workflow: str) -> dict[str, Any]:
         """启动处理流程.
 
         Args:
@@ -137,7 +138,7 @@ class PaperService:
             logger.error(f"Error processing paper {paper_id}: {str(e)}")
             raise
 
-    async def get_status(self, paper_id: str) -> Dict[str, Any]:
+    async def get_status(self, paper_id: str) -> dict[str, Any]:
         """获取论文处理状态.
 
         Args:
@@ -160,7 +161,7 @@ class PaperService:
             "filename": metadata.get("filename"),
         }
 
-    async def get_content(self, paper_id: str, content_type: str) -> Dict[str, Any]:
+    async def get_content(self, paper_id: str, content_type: str) -> dict[str, Any]:
         """获取论文内容.
 
         Args:
@@ -200,7 +201,7 @@ class PaperService:
             if not content_path.exists():
                 raise ValueError(f"{content_type}内容不存在: {paper_id}")
 
-            with open(content_path, "r", encoding="utf-8") as f:
+            with open(content_path, encoding="utf-8") as f:
                 content = f.read()
 
             return {
@@ -214,11 +215,11 @@ class PaperService:
 
     async def list_papers(
         self,
-        category: Optional[str] = None,
-        status: Optional[str] = None,
+        category: str | None = None,
+        status: str | None = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """获取论文列表.
 
         Args:
@@ -275,7 +276,7 @@ class PaperService:
 
         return {"papers": papers, "total": total, "offset": offset, "limit": limit}
 
-    async def delete_paper(self, paper_id: str) -> Dict[str, Any]:
+    async def delete_paper(self, paper_id: str) -> dict[str, Any]:
         """删除论文及其相关数据.
 
         Args:
@@ -326,8 +327,8 @@ class PaperService:
             raise
 
     async def batch_process_papers(
-        self, paper_ids: List[str], workflow: str
-    ) -> Dict[str, Any]:
+        self, paper_ids: list[str], workflow: str
+    ) -> dict[str, Any]:
         """批量处理论文.
 
         Args:
@@ -365,7 +366,7 @@ class PaperService:
             "results": result["results"],
         }
 
-    async def get_paper_report(self, paper_id: str) -> Dict[str, Any]:
+    async def get_paper_report(self, paper_id: str) -> dict[str, Any]:
         """获取论文的深度阅读报告.
 
         Args:
@@ -412,7 +413,7 @@ class PaperService:
             return paper_id.split("_")[0]
         return "general"
 
-    async def _save_metadata(self, paper_id: str, metadata: Dict[str, Any]):
+    async def _save_metadata(self, paper_id: str, metadata: dict[str, Any]):
         """保存元数据."""
         metadata_dir = self.papers_dir / ".metadata"
         metadata_dir.mkdir(exist_ok=True)
@@ -423,7 +424,7 @@ class PaperService:
         with open(metadata_file, "w", encoding="utf-8") as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-    async def _get_metadata(self, paper_id: str) -> Optional[Dict[str, Any]]:
+    async def _get_metadata(self, paper_id: str) -> dict[str, Any] | None:
         """获取元数据."""
         metadata_dir = self.papers_dir / ".metadata"
         metadata_file = metadata_dir / f"{paper_id}.json"
@@ -433,10 +434,10 @@ class PaperService:
 
         import json
 
-        with open(metadata_file, "r", encoding="utf-8") as f:
+        with open(metadata_file, encoding="utf-8") as f:
             return json.load(f)
 
-    async def _update_metadata(self, paper_id: str, updates: Dict[str, Any]):
+    async def _update_metadata(self, paper_id: str, updates: dict[str, Any]):
         """更新元数据."""
         metadata = await self._get_metadata(paper_id) or {}
         metadata.update(updates)
@@ -470,7 +471,7 @@ class PaperService:
         await self._update_metadata(paper_id, updates)
 
     async def _create_task_record(
-        self, paper_id: str, task_id: str, workflow: str, result: Dict[str, Any]
+        self, paper_id: str, task_id: str, workflow: str, result: dict[str, Any]
     ):
         """创建任务记录."""
         # 这里可以实现任务记录保存逻辑

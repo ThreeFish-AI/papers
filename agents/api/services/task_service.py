@@ -1,12 +1,10 @@
 """Task service for managing background tasks."""
 
-import asyncio
+import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
 from pathlib import Path
-import json
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +29,7 @@ class TaskService:
         # 保存正在运行的任务状态
 
     async def create_task(
-        self, paper_id: str, workflow: str, params: Optional[Dict[str, Any]] = None
+        self, paper_id: str, workflow: str, params: dict[str, Any] | None = None
     ) -> str:
         """创建新任务.
 
@@ -66,7 +64,7 @@ class TaskService:
 
         return task_id
 
-    async def get_task(self, task_id: str) -> Dict[str, Any]:
+    async def get_task(self, task_id: str) -> dict[str, Any]:
         """获取任务详情.
 
         Args:
@@ -83,11 +81,11 @@ class TaskService:
     async def update_task(
         self,
         task_id: str,
-        status: Optional[str] = None,
-        progress: Optional[float] = None,
-        message: Optional[str] = None,
-        result: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
+        status: str | None = None,
+        progress: float | None = None,
+        message: str | None = None,
+        result: dict[str, Any] | None = None,
+        error: str | None = None,
     ):
         """更新任务状态.
 
@@ -145,7 +143,7 @@ class TaskService:
         except Exception as e:
             logger.error(f"Error sending WebSocket update: {str(e)}")
 
-    async def cancel_task(self, task_id: str) -> Dict[str, Any]:
+    async def cancel_task(self, task_id: str) -> dict[str, Any]:
         """取消任务.
 
         Args:
@@ -179,12 +177,12 @@ class TaskService:
 
     async def list_tasks(
         self,
-        status: Optional[str] = None,
-        paper_id: Optional[str] = None,
-        workflow: Optional[str] = None,
+        status: str | None = None,
+        paper_id: str | None = None,
+        workflow: str | None = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """获取任务列表.
 
         Args:
@@ -216,7 +214,7 @@ class TaskService:
 
         return {"tasks": tasks, "total": total, "offset": offset, "limit": limit}
 
-    async def get_task_logs(self, task_id: str, lines: int = 100) -> List[str]:
+    async def get_task_logs(self, task_id: str, lines: int = 100) -> list[str]:
         """获取任务日志.
 
         Args:
@@ -232,7 +230,7 @@ class TaskService:
             return []
 
         try:
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 all_lines = f.readlines()
 
             # 返回最后 N 行
@@ -244,7 +242,7 @@ class TaskService:
 
     async def cleanup_completed_tasks(
         self, older_than_hours: int = 24
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """清理已完成的任务.
 
         Args:
@@ -292,7 +290,7 @@ class TaskService:
         except Exception as e:
             logger.error(f"Error saving task log: {str(e)}")
 
-    async def get_task_statistics(self) -> Dict[str, Any]:
+    async def get_task_statistics(self) -> dict[str, Any]:
         """获取任务统计信息.
 
         Returns:
