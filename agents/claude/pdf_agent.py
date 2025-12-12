@@ -1,8 +1,8 @@
 """PDF Processing Agent - 封装 PDF 处理功能."""
 
-import os
-from typing import Dict, Any, Optional
 import logging
+import os
+from typing import Any
 
 from .base import BaseAgent
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class PDFProcessingAgent(BaseAgent):
     """PDF 处理专用 Agent."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化 PDFProcessingAgent.
 
         Args:
@@ -26,7 +26,7 @@ class PDFProcessingAgent(BaseAgent):
             "output_format": "markdown",
         }
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """处理 PDF 文档.
 
         Args:
@@ -46,7 +46,7 @@ class PDFProcessingAgent(BaseAgent):
 
         return await self.extract_content({"file_path": file_path, "options": options})
 
-    async def extract_content(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def extract_content(self, params: dict[str, Any]) -> dict[str, Any]:
         """提取 PDF 内容.
 
         Args:
@@ -112,8 +112,8 @@ class PDFProcessingAgent(BaseAgent):
             return {"success": False, "error": str(e)}
 
     async def batch_extract(
-        self, file_paths: list, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, file_paths: list, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """批量提取 PDF 内容.
 
         Args:
@@ -171,7 +171,7 @@ class PDFProcessingAgent(BaseAgent):
 
         return {"success": True, "total": len(file_paths), "results": processed_results}
 
-    def _extract_metadata(self, data: Dict[str, Any], file_path: str) -> Dict[str, Any]:
+    def _extract_metadata(self, data: dict[str, Any], file_path: str) -> dict[str, Any]:
         """提取 PDF 元数据.
 
         Args:
@@ -211,7 +211,7 @@ class PDFProcessingAgent(BaseAgent):
         return metadata
 
     def _process_images(
-        self, images: list, pdf_path: str, paper_id: Optional[str] = None
+        self, images: list, pdf_path: str, paper_id: str | None = None
     ) -> list:
         """处理提取的图片信息.
 
@@ -273,7 +273,7 @@ class PDFProcessingAgent(BaseAgent):
         words = content.split()
         return len(words)
 
-    async def validate_pdf(self, file_path: str) -> Dict[str, Any]:
+    async def validate_pdf(self, file_path: str) -> dict[str, Any]:
         """验证 PDF 文件.
 
         Args:

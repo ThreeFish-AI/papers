@@ -1,16 +1,15 @@
 """Workflow Agent - 负责任务分解和流程编排."""
 
 import asyncio
-import os
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from pathlib import Path
 import logging
+import os
+from pathlib import Path
+from typing import Any
 
 from .base import BaseAgent
+from .heartfelt_agent import HeartfeltAgent
 from .pdf_agent import PDFProcessingAgent
 from .translation_agent import TranslationAgent
-from .heartfelt_agent import HeartfeltAgent
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class WorkflowAgent(BaseAgent):
     """工作流协调 Agent - 负责任务分解和流程编排."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化 WorkflowAgent.
 
         Args:
@@ -30,7 +29,7 @@ class WorkflowAgent(BaseAgent):
         self.translation_agent = TranslationAgent(config)
         self.heartfelt_agent = HeartfeltAgent(config)
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """处理文档的主入口.
 
         Args:
@@ -66,8 +65,8 @@ class WorkflowAgent(BaseAgent):
             return {"success": False, "error": str(e)}
 
     async def _full_workflow(
-        self, source_path: str, paper_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, source_path: str, paper_id: str | None = None
+    ) -> dict[str, Any]:
         """完整处理流程：提取 -> 翻译 -> 分析.
 
         Args:
@@ -128,8 +127,8 @@ class WorkflowAgent(BaseAgent):
         }
 
     async def _extract_workflow(
-        self, source_path: str, paper_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, source_path: str, paper_id: str | None = None
+    ) -> dict[str, Any]:
         """仅提取内容流程.
 
         Args:
@@ -163,8 +162,8 @@ class WorkflowAgent(BaseAgent):
         }
 
     async def _translate_workflow(
-        self, source_path: str, paper_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, source_path: str, paper_id: str | None = None
+    ) -> dict[str, Any]:
         """仅翻译流程.
 
         Args:
@@ -204,8 +203,8 @@ class WorkflowAgent(BaseAgent):
         }
 
     async def _heartfelt_workflow(
-        self, source_path: str, paper_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, source_path: str, paper_id: str | None = None
+    ) -> dict[str, Any]:
         """仅深度分析流程.
 
         Args:
@@ -243,9 +242,9 @@ class WorkflowAgent(BaseAgent):
     async def _async_heartfelt_analysis(
         self,
         source_path: str,
-        extract_data: Dict[str, Any],
-        translate_data: Optional[Dict[str, Any]],
-        paper_id: Optional[str] = None,
+        extract_data: dict[str, Any],
+        translate_data: dict[str, Any] | None,
+        paper_id: str | None = None,
     ):
         """异步进行深度分析.
 
@@ -276,8 +275,8 @@ class WorkflowAgent(BaseAgent):
     async def _save_workflow_results(
         self,
         paper_id: str,
-        extract_result: Dict[str, Any],
-        translate_result: Dict[str, Any],
+        extract_result: dict[str, Any],
+        translate_result: dict[str, Any],
     ):
         """保存工作流结果.
 
@@ -297,7 +296,7 @@ class WorkflowAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error saving workflow results: {str(e)}")
 
-    async def _save_extract_result(self, paper_id: str, data: Dict[str, Any]):
+    async def _save_extract_result(self, paper_id: str, data: dict[str, Any]):
         """保存提取结果.
 
         Args:
@@ -322,7 +321,7 @@ class WorkflowAgent(BaseAgent):
 
         logger.info(f"Extract result saved to {output_file}")
 
-    async def _save_translate_result(self, paper_id: str, data: Dict[str, Any]):
+    async def _save_translate_result(self, paper_id: str, data: dict[str, Any]):
         """保存翻译结果.
 
         Args:
@@ -333,7 +332,7 @@ class WorkflowAgent(BaseAgent):
         # 实际实现中可能需要区分源文件和翻译文件
         logger.info(f"Translate result saved for {paper_id}")
 
-    async def _save_heartfelt_result(self, paper_id: str, data: Dict[str, Any]):
+    async def _save_heartfelt_result(self, paper_id: str, data: dict[str, Any]):
         """保存深度分析结果.
 
         Args:
@@ -350,7 +349,7 @@ class WorkflowAgent(BaseAgent):
 
         logger.info(f"Heartfelt result saved to {output_file}")
 
-    async def batch_process(self, documents: List[str]) -> Dict[str, Any]:
+    async def batch_process(self, documents: list[str]) -> dict[str, Any]:
         """批量处理多个文档.
 
         Args:

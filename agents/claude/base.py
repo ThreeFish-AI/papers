@@ -1,9 +1,9 @@
 """Base Agent class for Claude Agent SDK implementation."""
 
 import asyncio
-from typing import Dict, Any, Optional, List
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class BaseAgent(ABC):
     """Agent 基类，定义统一接口."""
 
-    def __init__(self, name: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, config: dict[str, Any] | None = None):
         """初始化 Agent.
 
         Args:
@@ -24,7 +24,7 @@ class BaseAgent(ABC):
         logger.info(f"Initialized {self.name} agent with config: {self.config}")
 
     @abstractmethod
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """基础处理方法，子类必须实现.
 
         Args:
@@ -36,8 +36,8 @@ class BaseAgent(ABC):
         pass
 
     async def call_skill(
-        self, skill_name: str, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, skill_name: str, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """调用 Claude Skill.
 
         Args:
@@ -58,8 +58,8 @@ class BaseAgent(ABC):
             return {"success": False, "error": str(e)}
 
     async def batch_call_skill(
-        self, calls: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, calls: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """批量调用 Skills，提高并发性能.
 
         Args:
@@ -71,7 +71,7 @@ class BaseAgent(ABC):
         tasks = [self.call_skill(call["skill"], call["params"]) for call in calls]
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def validate_input(self, input_data: Dict[str, Any]) -> bool:
+    async def validate_input(self, input_data: dict[str, Any]) -> bool:
         """验证输入数据.
 
         Args:
@@ -83,7 +83,7 @@ class BaseAgent(ABC):
         return isinstance(input_data, dict)
 
     async def log_processing(
-        self, input_data: Dict[str, Any], output_data: Dict[str, Any]
+        self, input_data: dict[str, Any], output_data: dict[str, Any]
     ):
         """记录处理日志.
 
