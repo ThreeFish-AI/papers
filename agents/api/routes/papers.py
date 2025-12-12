@@ -35,7 +35,7 @@ async def upload_paper(
     - **file**: PDF 文件
     - **category**: 论文分类（可选）
     """
-    if not file.filename.lower().endswith(".pdf"):
+    if not (file.filename and file.filename.lower().endswith(".pdf")):
         raise HTTPException(status_code=400, detail="只支持 PDF 文件")
 
     if file.size and file.size > 50 * 1024 * 1024:  # 50MB 限制
@@ -52,9 +52,9 @@ async def upload_paper(
 @router.post("/{paper_id}/process")
 async def process_paper(
     paper_id: str = Path(..., description="论文 ID"),
-    request: PaperProcessRequest = ...,
+    request: PaperProcessRequest = Body(...),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     处理论文（提取/翻译/分析）.
 
@@ -75,7 +75,7 @@ async def process_paper(
 async def get_paper_status(
     paper_id: str = Path(..., description="论文 ID"),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     获取论文处理状态.
 
@@ -98,7 +98,7 @@ async def get_paper_content(
         "translation", description="内容类型: source, translation, heartfelt"
     ),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     获取论文内容.
 
@@ -125,7 +125,7 @@ async def list_papers(
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     获取论文列表.
 
@@ -148,7 +148,7 @@ async def list_papers(
 async def delete_paper(
     paper_id: str = Path(..., description="论文 ID"),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     删除论文及其相关数据.
 
@@ -166,10 +166,10 @@ async def delete_paper(
 
 @router.post("/batch", response_model=BatchProcessRequest)
 async def batch_process_papers(
-    paper_ids: list[str],
+    paper_ids: list[str] = Body(...),
     workflow: str = Query("full", description="处理工作流"),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     批量处理论文.
 
@@ -191,7 +191,7 @@ async def batch_process_papers(
 async def get_paper_report(
     paper_id: str = Path(..., description="论文 ID"),
     service: PaperService = Depends(get_paper_service),
-):
+) -> dict[str, Any]:
     """
     获取论文的深度阅读报告.
 

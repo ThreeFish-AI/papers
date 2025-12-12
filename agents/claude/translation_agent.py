@@ -19,7 +19,9 @@ class TranslationAgent(BaseAgent):
             config: 配置参数
         """
         super().__init__("translator", config)
-        self.papers_dir = Path(config.get("papers_dir", "papers"))
+        self.papers_dir = Path(
+            config.get("papers_dir", "papers") if config else "papers"
+        )
         self.default_options = {
             "target_language": "zh",
             "preserve_format": True,
@@ -75,7 +77,7 @@ class TranslationAgent(BaseAgent):
             content_length = len(content)
             batch_size = self.default_options["batch_size"]
 
-            if content_length <= batch_size:
+            if content_length <= int(batch_size):
                 # 单次翻译
                 result = await self._translate_single(
                     {
@@ -257,7 +259,7 @@ class TranslationAgent(BaseAgent):
 
         return batches
 
-    async def _save_translation(self, paper_id: str, content: str):
+    async def _save_translation(self, paper_id: str, content: str) -> None:
         """保存翻译结果.
 
         Args:
@@ -304,7 +306,7 @@ class TranslationAgent(BaseAgent):
         formula_blocks_original = self._count_formula_blocks(original)
         formula_blocks_translated = self._count_formula_blocks(translated)
 
-        validation = {
+        validation: dict[str, Any] = {
             "valid": True,
             "warnings": [],
             "stats": {

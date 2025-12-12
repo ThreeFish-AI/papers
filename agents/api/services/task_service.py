@@ -12,18 +12,18 @@ logger = logging.getLogger(__name__)
 class TaskService:
     """任务管理服务."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化 TaskService."""
         self.tasks = {}  # 内存中的任务存储
         self.logs_dir = Path("logs/tasks")
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """初始化服务."""
         logger.info("TaskService initialized")
         # 可以在这里加载持久化的任务
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         """清理服务."""
         logger.info("TaskService cleanup completed")
         # 保存正在运行的任务状态
@@ -129,7 +129,7 @@ class TaskService:
         try:
             from ..routes.websocket import send_task_update
 
-            await send_task_update(task_id, status, progress, message)
+            await send_task_update(task_id, status, progress or 0.0, message or "")
 
             # 如果任务完成，发送完成通知
             if status in ["completed", "failed"]:
@@ -274,7 +274,7 @@ class TaskService:
 
         return {"cleaned": len(tasks_to_remove), "cutoff_time": cutoff_str}
 
-    async def _save_task_log(self, task_id: str, message: str):
+    async def _save_task_log(self, task_id: str, message: str) -> None:
         """保存任务日志.
 
         Args:
@@ -313,7 +313,7 @@ class TaskService:
         # 计算成功率
         completed = stats["completed"]
         finished = stats["completed"] + stats["failed"] + stats["cancelled"]
-        stats["success_rate"] = (completed / finished * 100) if finished > 0 else 0
+        stats["success_rate"] = int((completed / finished * 100) if finished > 0 else 0)
 
         return stats
 

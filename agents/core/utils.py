@@ -157,7 +157,7 @@ def validate_pdf_file(file_path: str) -> dict[str, Any]:
 
         # 尝试读取 PDF 文件信息
         try:
-            import pypdf2  # type: ignore
+            import pypdf2
 
             with open(file_path, "rb") as f:
                 pdf_reader = pypdf2.PdfReader(f)
@@ -290,7 +290,7 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0) -> Callable[..., 
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        async def wrapper(*args, **kwargs) -> Any:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             last_error: Exception | None = None
             for attempt in range(max_retries + 1):
                 try:

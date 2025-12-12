@@ -25,7 +25,7 @@ async def list_tasks(
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
     service: TaskService = Depends(get_task_service),
-):
+) -> dict[str, Any]:
     """
     获取任务列表.
 
@@ -55,7 +55,7 @@ async def list_tasks(
 async def get_task(
     task_id: str = Path(..., description="任务 ID"),
     service: TaskService = Depends(get_task_service),
-):
+) -> dict[str, Any]:
     """
     获取任务详情.
 
@@ -75,7 +75,7 @@ async def get_task(
 async def cancel_task(
     task_id: str = Path(..., description="任务 ID"),
     service: TaskService = Depends(get_task_service),
-):
+) -> dict[str, Any]:
     """
     取消任务.
 
@@ -96,7 +96,7 @@ async def get_task_logs(
     task_id: str = Path(..., description="任务 ID"),
     lines: int = Query(100, ge=1, le=1000, description="返回日志行数"),
     service: TaskService = Depends(get_task_service),
-):
+) -> dict[str, Any]:
     """
     获取任务日志.
 
@@ -117,7 +117,7 @@ async def get_task_logs(
 async def cleanup_completed_tasks(
     older_than_hours: int = Query(24, ge=1, description="清理多少小时前的任务"),
     service: TaskService = Depends(get_task_service),
-):
+) -> dict[str, Any]:
     """
     清理已完成的任务.
 

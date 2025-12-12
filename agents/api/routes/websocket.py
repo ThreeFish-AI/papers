@@ -14,20 +14,20 @@ router = APIRouter()
 
 # WebSocket 连接管理器
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: dict[str, WebSocket] = {}
         self.client_subscriptions: dict[
             str, set[str]
         ] = {}  # client_id -> set of task_ids
 
-    async def connect(self, websocket: WebSocket, client_id: str):
+    async def connect(self, websocket: WebSocket, client_id: str) -> None:
         """接受 WebSocket 连接."""
         await websocket.accept()
         self.active_connections[client_id] = websocket
         self.client_subscriptions[client_id] = set()
         logger.info(f"WebSocket client connected: {client_id}")
 
-    def disconnect(self, client_id: str):
+    def disconnect(self, client_id: str) -> None:
         """断开 WebSocket 连接."""
         if client_id in self.active_connections:
             del self.active_connections[client_id]
@@ -35,7 +35,9 @@ class ConnectionManager:
             del self.client_subscriptions[client_id]
         logger.info(f"WebSocket client disconnected: {client_id}")
 
-    async def send_personal_message(self, message: dict, client_id: str):
+    async def send_personal_message(
+        self, message: dict[str, Any], client_id: str
+    ) -> None:
         """发送个人消息."""
         if client_id in self.active_connections:
             websocket = self.active_connections[client_id]
@@ -45,7 +47,9 @@ class ConnectionManager:
                 logger.error(f"Error sending message to {client_id}: {str(e)}")
                 self.disconnect(client_id)
 
-    async def broadcast_to_subscribers(self, message: dict, task_id: str):
+    async def broadcast_to_subscribers(
+        self, message: dict[str, Any], task_id: str
+    ) -> None:
         """向任务订阅者广播消息."""
         for client_id, subscriptions in self.client_subscriptions.items():
             if task_id in subscriptions:
@@ -130,8 +134,8 @@ async def get_websocket_service() -> WebSocketService:
 
 # 发送任务更新的辅助函数
 async def send_task_update(
-    task_id: str, status: str, progress: float = None, message: str = None
-):
+    task_id: str, status: str, progress: float | None = None, message: str | None = None
+) -> None:
     """发送任务更新给所有订阅者."""
     update_message = {
         "type": "task_update",
@@ -145,7 +149,9 @@ async def send_task_update(
 
 
 # 发送任务完成通知
-async def send_task_completion(task_id: str, result: dict = None, error: str = None):
+async def send_task_completion(
+    task_id: str, result: dict[Any, Any] | None = None, error: str | None = None
+) -> None:
     """发送任务完成通知."""
     completion_message = {
         "type": "task_completed",
@@ -160,8 +166,8 @@ async def send_task_completion(task_id: str, result: dict = None, error: str = N
 
 # 发送批处理进度更新
 async def send_batch_progress(
-    batch_id: str, total: int, processed: int, current_file: str = None
-):
+    batch_id: str, total: int, processed: int, current_file: str | None = None
+) -> None:
     """发送批处理进度更新."""
     progress_message = {
         "type": "batch_progress",

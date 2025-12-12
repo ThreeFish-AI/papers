@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class WebSocketService:
     """WebSocket 服务."""
 
-    def __init__(self, connection_manager) -> None:
+    def __init__(self, connection_manager: Any) -> None:
         """初始化 WebSocketService.
 
         Args:
@@ -34,7 +34,7 @@ class WebSocketService:
         """
         from ..routes.websocket import send_task_update
 
-        await send_task_update(task_id, status, progress, message)
+        await send_task_update(task_id, status, progress or 0.0, message or "")
 
     async def send_task_completion(
         self,
@@ -51,7 +51,7 @@ class WebSocketService:
         """
         from ..routes.websocket import send_task_completion
 
-        await send_task_completion(task_id, result, error)
+        await send_task_completion(task_id, result or {}, error or "")
 
     async def send_batch_progress(
         self,
@@ -70,4 +70,4 @@ class WebSocketService:
         """
         from ..routes.websocket import send_batch_progress
 
-        await send_batch_progress(batch_id, total, processed, current_file)
+        await send_batch_progress(batch_id, total, processed, current_file or "")
