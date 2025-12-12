@@ -342,7 +342,10 @@ jobs:
           EOF
           )
 
-          gh pr edit ${{ steps.check-pr.outputs.pr_number }} --body "$PR_BODY"
+          # Try to update PR body, but continue if it fails due to permissions
+          gh pr edit ${{ steps.check-pr.outputs.pr_number }} --body "$PR_BODY" || {
+            echo "Warning: Could not update PR body due to permissions. The PR still contains the latest fixes."
+          }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
