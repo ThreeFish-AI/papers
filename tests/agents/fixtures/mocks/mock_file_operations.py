@@ -175,12 +175,21 @@ class MockFileManager:
 
     def unlink_path(self):
         """Mock unlink() method for pathlib.Path."""
-        # When called as a bound method, self is the Path object
-        path_str = str(self)
+        # Convert to string to get the path
+        try:
+            path_str = str(self)
+        except Exception as e:
+            # If we can't convert to string, there's a serious problem
+            raise FileNotFoundError(
+                f"Cannot extract path from object: {self}, error: {e}"
+            )
+
         if path_str in mock_file_manager.files:
             del mock_file_manager.files[path_str]
         else:
-            raise FileNotFoundError(f"File not found: {self}")
+            # File not found in mock - this could be expected behavior
+            # for files that don't exist, so raise the expected error
+            raise FileNotFoundError(f"File not found: {path_str}")
 
     def rmtree(self, path: str):
         """Mock rmtree() method."""
@@ -433,7 +442,7 @@ class FileOperationsPatcher:
         if self.patched:
             raise RuntimeError("Patcher already in use")
 
-        # Patch Path methods
+        # Patch Path methods using the original approach but with our file manager
         self.patches.append(
             patch("pathlib.Path.exists", side_effect=self.file_manager.exists_path)
         )

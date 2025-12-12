@@ -338,14 +338,16 @@ class TestWorkflowAgent:
         """Test async heartfelt analysis task creation."""
         source_path = "/test/paper.pdf"
         extract_data = {"content": "Content..."}
-        translate_data = {"translated_content": "Translated..."}
+        translate_data = {"content": "Translated..."}
         paper_id = "test_paper"
 
-        # Mock the heartfelt analysis
-        workflow_agent.heartfelt_agent.analyze.return_value = {
-            "success": True,
-            "data": {"summary": "Analysis..."},
-        }
+        # Mock the heartfelt analysis - it's an async method
+        workflow_agent.heartfelt_agent.analyze = AsyncMock(
+            return_value={
+                "success": True,
+                "data": {"summary": "Analysis..."},
+            }
+        )
 
         # Mock saving result
         workflow_agent._save_heartfelt_result = AsyncMock()
@@ -356,7 +358,13 @@ class TestWorkflowAgent:
         )
 
         # Verify the analysis was called
-        workflow_agent.heartfelt_agent.analyze.assert_called_once()
+        workflow_agent.heartfelt_agent.analyze.assert_called_once_with(
+            {
+                "content": "Content...",
+                "translation": "Translated...",
+                "paper_id": "test_paper",
+            }
+        )
         workflow_agent._save_heartfelt_result.assert_called_once()
 
     def test_validate_input_success(self, workflow_agent, temp_dir):
