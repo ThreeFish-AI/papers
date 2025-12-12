@@ -5,6 +5,19 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class PaperMetadata(BaseModel):
+    """论文元数据模型."""
+
+    title: str = Field(..., description="标题")
+    authors: list[str] = Field(..., description="作者列表")
+    year: int = Field(..., description="发表年份")
+    venue: str | None = Field(None, description="发表场所")
+    abstract: str | None = Field(None, description="摘要")
+    pages: int | None = Field(None, description="页数")
+    doi: str | None = Field(None, description="DOI")
+    keywords: list[str] = Field(default_factory=list, description="关键词")
+
+
 class PaperUploadResponse(BaseModel):
     """论文上传响应模型."""
 
@@ -21,13 +34,14 @@ class PaperProcessRequest(BaseModel):
     workflow: str = Field(default="full", description="处理工作流类型")
     options: dict[str, Any] | None = Field(default=None, description="处理选项")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "workflow": "full",
                 "options": {"extract_images": True, "preserve_format": True},
             }
         }
+    }
 
 
 class PaperStatus(BaseModel):
@@ -43,8 +57,8 @@ class PaperStatus(BaseModel):
     category: str | None = Field(None, description="论文分类")
     filename: str | None = Field(None, description="文件名")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "paper_id": "llm-agents_20240115_143022_example.pdf",
                 "status": "completed",
@@ -57,6 +71,7 @@ class PaperStatus(BaseModel):
                 },
             }
         }
+    }
 
 
 class PaperContent(BaseModel):
@@ -82,6 +97,7 @@ class PaperInfo(BaseModel):
     upload_time: str = Field(..., description="上传时间")
     updated_at: str | None = Field(None, description="更新时间")
     size: int = Field(..., description="文件大小")
+    metadata: PaperMetadata | None = Field(None, description="论文元数据")
 
 
 class PaperListResponse(BaseModel):
