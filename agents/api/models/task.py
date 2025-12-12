@@ -20,8 +20,8 @@ class TaskResponse(BaseModel):
     updated_at: str = Field(..., description="更新时间")
     params: dict[str, Any] | None = Field(None, description="任务参数")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "task_id": "task_12345678-1234-1234-1234-123456789abc",
                 "paper_id": "llm-agents_20240115_example.pdf",
@@ -33,6 +33,7 @@ class TaskResponse(BaseModel):
                 "updated_at": "2024-01-15T14:35:00",
             }
         }
+    }
 
 
 class TaskInfo(BaseModel):
