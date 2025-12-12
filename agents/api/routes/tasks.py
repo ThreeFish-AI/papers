@@ -1,11 +1,12 @@
 """Task management routes."""
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path
-from typing import Optional, List
 import logging
+from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+
+from agents.api.models.task import TaskListResponse, TaskResponse
 from agents.api.services.task_service import TaskService
-from agents.api.models.task import TaskResponse, TaskListResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,7 +47,9 @@ async def list_tasks(
         return tasks
     except Exception as e:
         logger.error(f"Error listing tasks: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取任务列表失败: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"获取任务列表失败: {str(e)}"
+        ) from e
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
@@ -66,7 +69,7 @@ async def get_task(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting task {task_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取任务失败: {str(e)}") from e
 
 
 @router.delete("/{task_id}")
@@ -86,7 +89,7 @@ async def cancel_task(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error canceling task {task_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"取消任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"取消任务失败: {str(e)}") from e
 
 
 @router.get("/{task_id}/logs")
@@ -108,7 +111,7 @@ async def get_task_logs(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting task logs {task_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取日志失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取日志失败: {str(e)}") from e
 
 
 @router.delete("/cleanup")
@@ -126,4 +129,4 @@ async def cleanup_completed_tasks(
         return result
     except Exception as e:
         logger.error(f"Error cleaning up tasks: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"清理任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"清理任务失败: {str(e)}") from e

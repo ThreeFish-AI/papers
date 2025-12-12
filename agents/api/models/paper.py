@@ -1,8 +1,8 @@
 """Paper related data models."""
 
+from typing import Optional, Any
+
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-from datetime import datetime
 
 
 class PaperUploadResponse(BaseModel):
@@ -19,7 +19,7 @@ class PaperProcessRequest(BaseModel):
     """论文处理请求模型."""
 
     workflow: str = Field(default="full", description="处理工作流类型")
-    options: Optional[Dict[str, Any]] = Field(default=None, description="处理选项")
+    options: Optional[dict[str, Any]] = Field(default=None, description="处理选项")
 
     class Config:
         schema_extra = {
@@ -35,7 +35,7 @@ class PaperStatus(BaseModel):
 
     paper_id: str = Field(..., description="论文ID")
     status: str = Field(..., description="当前状态")
-    workflows: Dict[str, Dict[str, Any]] = Field(
+    workflows: dict[str, dict[str, Any]] = Field(
         default_factory=dict, description="各工作流状态"
     )
     upload_time: Optional[str] = Field(None, description="上传时间")
@@ -69,7 +69,7 @@ class PaperContent(BaseModel):
     file_path: Optional[str] = Field(None, description="文件路径")
     word_count: Optional[int] = Field(None, description="字数")
     size: Optional[int] = Field(None, description="文件大小")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="元数据")
+    metadata: Optional[dict[str, Any]] = Field(None, description="元数据")
 
 
 class PaperInfo(BaseModel):
@@ -87,7 +87,7 @@ class PaperInfo(BaseModel):
 class PaperListResponse(BaseModel):
     """论文列表响应模型."""
 
-    papers: List[PaperInfo] = Field(..., description="论文列表")
+    papers: list[PaperInfo] = Field(..., description="论文列表")
     total: int = Field(..., description="总数")
     offset: int = Field(..., description="偏移量")
     limit: int = Field(..., description="限制数")
@@ -100,12 +100,12 @@ class BatchProcessRequest(BaseModel):
     total_requested: int = Field(..., description="请求数量")
     total_files: int = Field(..., description="实际文件数")
     workflow: str = Field(..., description="工作流类型")
-    stats: Dict[str, Any] = Field(..., description="处理统计")
-    results: List[Dict[str, Any]] = Field(..., description="处理结果")
+    stats: dict[str, Any] = Field(..., description="处理统计")
+    results: list[dict[str, Any]] = Field(..., description="处理结果")
 
 
 class PaperReport(BaseModel):
     """论文报告模型."""
 
     paper_id: str = Field(..., description="论文ID")
-    report: Dict[str, Any] = Field(..., description="报告内容")
+    report: dict[str, Any] = Field(..., description="报告内容")
