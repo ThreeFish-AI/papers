@@ -135,7 +135,13 @@ class TaskService:
 
             # 如果任务完成，发送完成通知
             if status in ["completed", "failed"]:
-                await send_task_completion(task_id, result, error)
+                # 发送任务更新消息而不是未定义的函数
+                await send_task_update(
+                    task_id,
+                    status,
+                    progress=100.0 if status == "completed" else progress,
+                    message=message,
+                )
         except Exception as e:
             logger.error(f"Error sending WebSocket update: {str(e)}")
 

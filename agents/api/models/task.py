@@ -1,8 +1,8 @@
 """Task related data models."""
 
+from typing import Optional, Any
+
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-from datetime import datetime
 
 
 class TaskResponse(BaseModel):
@@ -14,11 +14,11 @@ class TaskResponse(BaseModel):
     status: str = Field(..., description="任务状态")
     progress: float = Field(default=0, ge=0, le=100, description="进度百分比")
     message: str = Field(default="", description="状态消息")
-    result: Optional[Dict[str, Any]] = Field(None, description="处理结果")
+    result: Optional[dict[str, Any]] = Field(None, description="处理结果")
     error: Optional[str] = Field(None, description="错误信息")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
-    params: Optional[Dict[str, Any]] = Field(None, description="任务参数")
+    params: Optional[dict[str, Any]] = Field(None, description="任务参数")
 
     class Config:
         schema_extra = {
@@ -50,7 +50,7 @@ class TaskInfo(BaseModel):
 class TaskListResponse(BaseModel):
     """任务列表响应模型."""
 
-    tasks: List[TaskInfo] = Field(..., description="任务列表")
+    tasks: list[TaskInfo] = Field(..., description="任务列表")
     total: int = Field(..., description="总数")
     offset: int = Field(..., description="偏移量")
     limit: int = Field(..., description="限制数")
@@ -73,7 +73,7 @@ class TaskCompletion(BaseModel):
     type: str = Field(..., description="消息类型")
     task_id: str = Field(..., description="任务ID")
     success: bool = Field(..., description="是否成功")
-    result: Optional[Dict[str, Any]] = Field(None, description="结果")
+    result: Optional[dict[str, Any]] = Field(None, description="结果")
     error: Optional[str] = Field(None, description="错误")
     timestamp: str = Field(..., description="时间戳")
 

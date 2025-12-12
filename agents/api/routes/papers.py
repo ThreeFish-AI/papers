@@ -1,18 +1,18 @@
 """Papers management routes."""
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query, Path
-from typing import Optional, List
 import logging
+from typing import Optional
 
-from agents.api.services.paper_service import PaperService
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile
+
 from agents.api.models.paper import (
-    PaperUploadResponse,
+    BatchProcessRequest,
     PaperProcessRequest,
     PaperStatus,
-    PaperContent,
+    PaperUploadResponse,
     PaperListResponse,
-    BatchProcessRequest,
 )
+from agents.api.services.paper_service import PaperService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -47,7 +47,7 @@ async def upload_paper(
         return result
     except Exception as e:
         logger.error(f"Error uploading paper: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}") from e
 
 
 @router.post("/{paper_id}/process")
@@ -69,7 +69,7 @@ async def process_paper(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error processing paper {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}") from e
 
 
 @router.get("/{paper_id}/status", response_model=PaperStatus)
@@ -89,7 +89,7 @@ async def get_paper_status(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting paper status {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取状态失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取状态失败: {str(e)}") from e
 
 
 @router.get("/{paper_id}/content")
@@ -116,7 +116,7 @@ async def get_paper_content(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting paper content {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取内容失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取内容失败: {str(e)}") from e
 
 
 @router.get("/", response_model=PaperListResponse)
@@ -142,7 +142,7 @@ async def list_papers(
         return papers
     except Exception as e:
         logger.error(f"Error listing papers: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取列表失败: {str(e)}") from e
 
 
 @router.delete("/{paper_id}")
@@ -162,12 +162,12 @@ async def delete_paper(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error deleting paper {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}") from e
 
 
 @router.post("/batch", response_model=BatchProcessRequest)
 async def batch_process_papers(
-    paper_ids: List[str],
+    paper_ids: list[str],
     workflow: str = Query("full", description="处理工作流"),
     service: PaperService = Depends(get_paper_service),
 ):
@@ -185,7 +185,7 @@ async def batch_process_papers(
         return result
     except Exception as e:
         logger.error(f"Error in batch processing: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"批量处理失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"批量处理失败: {str(e)}") from e
 
 
 @router.get("/{paper_id}/report")
@@ -205,4 +205,4 @@ async def get_paper_report(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting paper report {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取报告失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取报告失败: {str(e)}") from e

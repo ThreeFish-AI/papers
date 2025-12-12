@@ -1,10 +1,11 @@
 """FastAPI application for Agentic AI Papers."""
 
-from fastapi import FastAPI, HTTPException
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import logging
 
 # 配置日志
 logging.basicConfig(
@@ -78,6 +79,14 @@ async def health_check():
     return {"status": "healthy", "service": "agentic-ai-papers-api", "version": "1.0.0"}
 
 
+# 导入并注册路由
+from agents.api.routes import papers, tasks, websocket
+
+app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
+app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(websocket.router, prefix="/ws", tags=["websocket"])
+
+
 # 根路径
 @app.get("/")
 async def root():
@@ -88,14 +97,6 @@ async def root():
         "docs": "/docs",
         "health": "/health",
     }
-
-
-# 导入并注册路由
-from agents.api.routes import papers, tasks, websocket
-
-app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
-app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
-app.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 
 
 # 启动事件
