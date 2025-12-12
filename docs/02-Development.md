@@ -140,6 +140,76 @@ from core.config import settings
 from api.models.paper import Paper
 ```
 
+### 代码质量保证
+
+我们使用 **Ruff** 作为 Python 代码检查和格式化工具，并设置了自动化修复流程：
+
+#### 自动修复功能
+
+- 🤖 **自动检测**: 当推送代码到任何分支时，自动运行 ruff 检查
+- 🔧 **自动修复**: 可自动修复的问题会被直接修复并创建 PR
+- 📝 **清晰报告**: 在 GitHub Actions 摘要中详细说明修复的内容
+
+#### 通知机制（可选）
+
+项目支持多种通知方式来接收自动修复的结果：
+
+- **GitHub Actions Step Summary**: 始终显示运行结果
+- **Slack 通知**: 通过 Webhook 发送到 Slack 频道
+- **邮件通知**: 发送详细的修复报告到指定邮箱
+
+##### 配置通知
+
+在仓库设置中配置以下变量即可启用通知：
+
+1. **启用通知**:
+
+   ```yaml
+   NOTIFICATION_ENABLED=true
+   ```
+
+2. **Slack 通知**:
+
+   - 添加 Secret: `SLACK_WEBHOOK_URL` (你的 Slack Webhook URL)
+
+3. **邮件通知**:
+   - 添加 Variables:
+     - `EMAIL_NOTIFICATIONS`: 接收通知的邮箱地址（多个用逗号分隔）
+     - `SMTP_SERVER`: SMTP 服务器地址（默认: smtp.gmail.com）
+     - `SMTP_PORT`: SMTP 端口（默认: 587）
+   - 添加 Secrets:
+     - `EMAIL_USERNAME`: SMTP 用户名
+     - `EMAIL_PASSWORD`: SMTP 密码
+     - `EMAIL_FROM`: 发件人邮箱（可选）
+
+#### 工作流说明
+
+- 自动修复工作流会在所有分支的 Push 时运行
+- 修复 PR 会自动添加 `auto-fix` 和 `ruff` 标签
+- 所有修复都会经过完整的 CI 测试流程
+
+#### 本地开发建议
+
+```bash
+# 安装开发依赖
+pip install -e ".[dev]"
+
+# 检查代码问题
+ruff check .
+
+# 自动修复可修复的问题
+ruff check --fix .
+
+# 格式化代码
+ruff format .
+```
+
+#### 工作流说明
+
+- 自动修复工作流不会在 `master` 和 `release/**` 分支上运行
+- 修复 PR 会自动添加 `auto-fix` 和 `ruff` 标签
+- 所有修复都会经过完整的 CI 测试流程
+
 ## Agent 开发指南
 
 ### 创建新 Agent
