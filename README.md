@@ -188,10 +188,8 @@ analysis = paper.analyze()
 
 ## 🔗 相关链接
 
-- [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk)
-- [Google Agent Development Kit](https://developers.google.com/agent-kit)
-- [Agentic AI Survey](https://arxiv.org/abs/2401.01268)
-- [Agent Project](https://agent.supply/) - 中文 Agent 项目聚合
+- [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
+- [Google Agent Development Kit](https://google.github.io/adk-docs/)
 
 ## 📞 联系我们
 
