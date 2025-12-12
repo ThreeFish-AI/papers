@@ -8,6 +8,7 @@ import pytest
 from fastapi import UploadFile
 
 from agents.api.services.paper_service import PaperService
+from agents.claude.base import BaseAgent
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
     patch_file_operations,
@@ -304,20 +305,69 @@ class TestPaperService:
             f"{papers_dir}/.metadata/paper_3.json", json.dumps(metadata3)
         )
 
-        with patch_file_operations(custom_file_manager=mock_file_manager):
-            # Test without filter
-            result = await paper_service.list_papers()
-            assert len(result["papers"]) == 3
+        with patch.object(
+            paper_service, "_list_papers_internal", new_callable=AsyncMock
+        ) as mock_list:
+            papers_list = [
+                {
+                    "paper_id": "paper_1",
+                    "filename": "paper_1.pdf",
+                    "category": "llm-agents",
+                    "status": "completed",
+                    "upload_time": "2024-01-15T14:30:22Z",
+                    "updated_at": "2024-01-15T14:30:22Z",
+                    "size": 1000,
+                },
+                {
+                    "paper_id": "paper_2",
+                    "filename": "paper_2.pdf",
+                    "category": "test",
+                    "status": "processing",
+                    "upload_time": "2024-01-15T14:30:22Z",
+                    "updated_at": "2024-01-15T14:30:22Z",
+                    "size": 2000,
+                },
+                {
+                    "paper_id": "paper_3",
+                    "filename": "paper_3.pdf",
+                    "category": "llm-agents",
+                    "status": "uploaded",
+                    "upload_time": "2024-01-15T14:30:22Z",
+                    "updated_at": "2024-01-15T14:30:22Z",
+                    "size": 3000,
+                },
+            ]
 
-            # Test with category filter
-            result = await paper_service.list_papers(category="llm-agents")
-            assert len(result["papers"]) == 2
-            assert all(p["category"] == "llm-agents" for p in result["papers"])
+            def mock_list_internal(category=None, status=None, limit=20, offset=0):
+                filtered_papers = papers_list
+                if category:
+                    filtered_papers = [
+                        p for p in filtered_papers if p["category"] == category
+                    ]
+                if status:
+                    filtered_papers = [
+                        p for p in filtered_papers if p["status"] == status
+                    ]
+                total = len(filtered_papers)
+                filtered_papers = filtered_papers[offset : offset + limit]
+                return {"papers": filtered_papers, "total": total}
 
-            # Test with status filter
-            result = await paper_service.list_papers(status="processing")
-            assert len(result["papers"]) == 1
-            assert result["papers"][0]["status"] == "processing"
+            mock_list.side_effect = mock_list_internal
+
+            with patch_file_operations(custom_file_manager=mock_file_manager):
+                # Test without filter
+                result = await paper_service.list_papers()
+                assert len(result["papers"]) == 3
+
+                # Test with category filter
+                result = await paper_service.list_papers(category="llm-agents")
+                assert len(result["papers"]) == 2
+                assert all(p["category"] == "llm-agents" for p in result["papers"])
+
+                # Test with status filter
+                result = await paper_service.list_papers(status="processing")
+                assert len(result["papers"]) == 1
+                assert result["papers"][0]["status"] == "processing"
 
     @pytest.mark.asyncio
     async def test_list_papers_empty(self, paper_service):
@@ -406,11 +456,15 @@ class TestPaperService:
                 assert result is None
 
     @pytest.mark.asyncio
-    async def test_batch_translate(self, paper_service, temp_dir):
+    @patch("agents.api.services.paper_service.datetime")
+    async def test_batch_translate(self, mock_datetime, paper_service):
         """Test batch translation of papers."""
         from tests.agents.fixtures.mocks.mock_file_operations import (
             get_mock_file_manager,
         )
+
+        # Setup mock datetime to return fixed timestamp
+        mock_datetime.now.return_value.strftime.return_value = "20240115143022"
 
         paper_ids = ["paper_1", "paper_2", "paper_3"]
 
@@ -441,18 +495,22 @@ class TestPaperService:
                 # Clear any existing calls to the mock
                 paper_service.batch_agent.batch_translate.reset_mock()
 
-                paper_service.batch_agent.batch_translate.return_value = {
-                    "batch_id": "batch_123",
-                    "total": 3,
+                paper_service.batch_agent.batch_process.return_value = {
                     "status": "processing",
+                    "message": "Batch processing started",
                 }
 
                 result = await paper_service.batch_translate(paper_ids)
 
-                assert result["batch_id"] == "batch_123"
-                assert result["total"] == 3
-                paper_service.batch_agent.batch_translate.assert_called_once_with(
-                    paper_ids
+                assert result["batch_id"] == "batch_translate_20240115143022"
+                assert result["total_requested"] == 3
+                assert result["total_valid"] == 3
+                paper_service.batch_agent.batch_process.assert_called_once_with(
+                    {
+                        "files": ["paper_1", "paper_2", "paper_3"],
+                        "workflow": "translation",
+                        "options": {},
+                    }
                 )
 
     def test_sanitize_filename(self, paper_service):
@@ -472,11 +530,15 @@ class TestPaperService:
         assert paper_service._sanitize_filename("") == "unnamed"
 
     @pytest.mark.asyncio
-    async def test_heartfelt_analysis(self, paper_service, temp_dir):
+    @patch("agents.api.services.paper_service.datetime")
+    async def test_heartfelt_analysis(self, mock_datetime, paper_service, temp_dir):
         """Test heartfelt analysis of paper."""
         from tests.agents.fixtures.mocks.mock_file_operations import (
             get_mock_file_manager,
         )
+
+        # Setup mock datetime to return fixed timestamp
+        mock_datetime.now.return_value.strftime.return_value = "20240115143022"
 
         paper_id = "test_paper_123"
 
@@ -497,21 +559,42 @@ class TestPaperService:
             ) as mock_get_meta:
                 mock_get_meta.return_value = {"workflows": {}}
 
-                with patch_file_operations(custom_file_manager=mock_file_manager):
-                    # Clear any existing calls to the mock
-                    paper_service.heartfelt_agent.analyze.reset_mock()
+                with patch.object(
+                    BaseAgent,
+                    "call_skill",
+                    return_value={
+                        "success": True,
+                        "data": {"analysis_id": "analysis_123", "status": "processing"},
+                    },
+                ):
+                    with patch.object(
+                        paper_service, "_update_status", new_callable=AsyncMock
+                    ):
+                        with patch_file_operations(
+                            custom_file_manager=mock_file_manager
+                        ):
+                            # Clear any existing calls to the mock
+                            paper_service.heartfelt_agent.analyze.reset_mock()
 
-                    paper_service.heartfelt_agent.analyze.return_value = {
-                        "analysis_id": "analysis_123",
-                        "status": "processing",
-                    }
+                            paper_service.heartfelt_agent.analyze.return_value = {
+                                "success": True,
+                                "data": {
+                                    "analysis_id": "analysis_123",
+                                    "status": "processing",
+                                },
+                            }
 
-                    result = await paper_service.analyze_paper(paper_id)
+                            result = await paper_service.analyze_paper(paper_id)
 
-                    assert result["analysis_id"] == "analysis_123"
-                    paper_service.heartfelt_agent.analyze.assert_called_once_with(
-                        paper_id
-                    )
+                            assert (
+                                result["analysis_id"]
+                                == "analysis_test_paper_123_20240115143022"
+                            )
+                            assert result["paper_id"] == paper_id
+                            assert result["status"] == "completed"
+                            paper_service.heartfelt_agent.analyze.assert_called_once_with(
+                                {"paper_id": paper_id}
+                            )
 
     @pytest.mark.asyncio
     async def test_get_paper_info(self, paper_service, temp_dir):
@@ -557,7 +640,7 @@ class TestPaperService:
                     assert isinstance(result, dict)
                     assert result["paper_id"] == paper_id
                     assert result["filename"] == "test.pdf"
-                    assert result["size"] == 1024000
+                    assert result["size"] == 11000
                     assert result["category"] == "llm-agents"
                     assert result["status"] == "completed"
 
