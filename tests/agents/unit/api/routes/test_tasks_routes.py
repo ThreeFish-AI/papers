@@ -305,11 +305,36 @@ class TestTasksRoutes:
         """Test that HTTP methods are correctly configured."""
         route_methods = {}
         for route in router.routes:
-            route_methods[route.path] = route.methods
+            # FastAPI may have different path representations
+            path = getattr(route, "path", None)
+            if path:
+                route_methods[path] = route.methods
+
+        # Debug: print actual routes
+        print("\nActual routes found:")
+        for path, methods in route_methods.items():
+            print(f"  {path}: {methods}")
 
         # Check each route has the expected methods
         assert "GET" in route_methods["/"]
-        assert "GET" in route_methods["/{task_id}"]
-        assert "DELETE" in route_methods["/{task_id}"]
+
+        # For /{task_id}, check both GET and DELETE exist
+        # They might be on separate route objects with same path
+        task_id_get = False
+        task_id_delete = False
+        for route in router.routes:
+            if getattr(route, "path", None) == "/{task_id}":
+                if "GET" in route.methods:
+                    task_id_get = True
+                if "DELETE" in route.methods:
+                    task_id_delete = True
+
+        assert task_id_get, (
+            f"GET method not found for /{{task_id}}. Routes: {route_methods}"
+        )
+        assert task_id_delete, (
+            f"DELETE method not found for /{{task_id}}. Routes: {route_methods}"
+        )
+
         assert "GET" in route_methods["/{task_id}/logs"]
         assert "DELETE" in route_methods["/cleanup"]

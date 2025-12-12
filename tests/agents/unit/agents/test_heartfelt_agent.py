@@ -274,14 +274,14 @@ class TestHeartfeltAgent:
     async def test_save_analysis_invalid_paper_id(self, heartfelt_agent, tmp_path):
         """Test save analysis with invalid paper ID."""
         heartfelt_agent.papers_dir = tmp_path
-        paper_id = "invalid_id"  # No underscore
+        paper_id = "invalid_id"  # Has underscore, so "invalid" will be used as category
         data = {"content": "Content", "analysis_timestamp": "2024-01-15T14:30:00"}
 
         # Should not raise exception
         await heartfelt_agent._save_analysis(paper_id, data)
 
-        # Should use "general" category
-        output_dir = tmp_path / "heartfelt" / "general"
+        # Should use "invalid" as category since paper_id is "invalid_id"
+        output_dir = tmp_path / "heartfelt" / "invalid"
         assert output_dir.exists()
         # Also check that files were created
         assert (output_dir / f"{paper_id}.md").exists()

@@ -107,10 +107,11 @@ class TestBatchProcessingAgent:
         batch_agent._validate_files = AsyncMock(
             return_value={"success": True, "files": files, "invalid": []}
         )
+        # Since batch_size=1, _process_batch will be called twice, once for each file
         batch_agent._process_batch = AsyncMock(
-            return_value=[
-                {"file_path": str(file1), "success": True},
-                {"file_path": str(file2), "success": True},
+            side_effect=[
+                [{"file_path": str(file1), "success": True}],
+                [{"file_path": str(file2), "success": True}],
             ]
         )
 
