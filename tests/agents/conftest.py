@@ -378,10 +378,6 @@ def websocket_message():
     }
 
 
-# Markers for test categorization
-pytest_plugins = []
-
-
 # Custom markers
 def pytest_configure(config):
     """Configure custom pytest markers."""
