@@ -134,7 +134,7 @@ class TestPaperService:
                 # File doesn't exist
                 mock_file_manager.files = {}
 
-                with pytest.raises(ValueError, match="论文不存在"):
+                with pytest.raises(ValueError, match="Paper not found"):
                     await paper_service.process_paper(paper_id, "full")
 
     @pytest.mark.asyncio
@@ -216,17 +216,17 @@ class TestPaperService:
 
             # Test without filter
             result = await paper_service.list_papers()
-            assert len(result) == 3
+            assert len(result["papers"]) == 3
 
             # Test with category filter
             result = await paper_service.list_papers(category="llm-agents")
-            assert len(result) == 2
-            assert all(p["category"] == "llm-agents" for p in result)
+            assert len(result["papers"]) == 2
+            assert all(p["category"] == "llm-agents" for p in result["papers"])
 
             # Test with status filter
             result = await paper_service.list_papers(status="processing")
-            assert len(result) == 1
-            assert result[0]["status"] == "processing"
+            assert len(result["papers"]) == 1
+            assert result["papers"][0]["status"] == "processing"
 
     @pytest.mark.asyncio
     async def test_list_papers_empty(self, paper_service):
@@ -237,7 +237,7 @@ class TestPaperService:
             mock_list.return_value = []
 
             result = await paper_service.list_papers()
-            assert result == []
+            assert result["papers"] == []
 
     @pytest.mark.asyncio
     async def test_delete_paper(self, paper_service):
@@ -279,9 +279,8 @@ class TestPaperService:
         ) as mock_load:
             mock_load.return_value = None
 
-            result = await paper_service.delete_paper(paper_id)
-
-            assert result is False
+            with pytest.raises(ValueError, match="Paper not found"):
+                await paper_service.delete_paper(paper_id)
 
     @pytest.mark.asyncio
     async def test_get_paper_content(self, paper_service):

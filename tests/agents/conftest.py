@@ -140,9 +140,14 @@ def mock_paper_service():
         service.upload_paper = AsyncMock()
         service.get_paper = AsyncMock()
         service.process_paper = AsyncMock()
-        service.get_paper_status = AsyncMock()
+        service.get_status = AsyncMock()
+        service.get_content = AsyncMock()
         service.list_papers = AsyncMock()
         service.delete_paper = AsyncMock()
+        service.batch_process_papers = AsyncMock()
+        service.get_paper_report = AsyncMock()
+        service.translate_paper = AsyncMock()
+        service.analyze_paper = AsyncMock()
         mock.return_value = service
         yield service
 

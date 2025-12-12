@@ -1,6 +1,7 @@
 """Papers management routes."""
 
 import logging
+import os
 from typing import Any
 
 from fastapi import (
@@ -27,28 +28,41 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# 依赖注入
+@router.get("/health")
+async def health_check() -> dict[str, Any]:
+    """
+    Health check endpoint.
+    """
+    return {"status": "healthy", "message": "Service is running"}
+
+
+# Dependency injection
 async def get_paper_service() -> PaperService:
-    """获取 PaperService 实例."""
+    """Get PaperService instance."""
     return PaperService()
 
 
 @router.post("/upload", response_model=PaperUploadResponse)
 async def upload_paper(
     file: UploadFile = File(...),
-    category: str = Query("general", description="论文分类"),
+    category: str = Query("general", description="Paper category"),
     service: PaperService = Depends(get_paper_service),
 ) -> PaperUploadResponse:
     """
-    上传论文文件.
+    Upload a paper file.
 
-    - **file**: PDF 文件
-    - **category**: 论文分类（可选）
+    - **file**: PDF file
+    - **category**: Paper category (optional)
     """
     if not (file.filename and file.filename.lower().endswith(".pdf")):
         raise HTTPException(status_code=400, detail="只支持 PDF 文件")
 
-    if file.size and file.size > 50 * 1024 * 1024:  # 50MB 限制
+    # Read file content to check actual size since file.size is None
+    file_content = await file.read()
+    file_size = len(file_content)
+    await file.seek(0)  # Reset file pointer for further processing
+
+    if file_size > 50 * 1024 * 1024:  # 50MB limit
         raise HTTPException(status_code=400, detail="文件大小不能超过 50MB")
 
     try:
@@ -61,35 +75,39 @@ async def upload_paper(
 
 @router.post("/{paper_id}/process")
 async def process_paper(
-    paper_id: str = Path(..., description="论文 ID"),
+    paper_id: str = Path(..., description="Paper ID"),
     request: PaperProcessRequest = Body(...),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    处理论文（提取/翻译/分析）.
+    Process a paper (extract/translate/analyze).
 
-    - **paper_id**: 论文 ID
-    - **workflow**: 处理工作流类型
+    - **paper_id**: Paper ID
+    - **workflow**: Workflow type
     """
     try:
-        result = await service.process_paper(paper_id, request.workflow)
+        result = await service.process_paper(
+            paper_id, request.workflow, options=request.options
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error processing paper {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Processing failed: {str(e)}"
+        ) from e
 
 
 @router.get("/{paper_id}/status", response_model=PaperStatus)
 async def get_paper_status(
-    paper_id: str = Path(..., description="论文 ID"),
+    paper_id: str = Path(..., description="Paper ID"),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    获取论文处理状态.
+    Get paper processing status.
 
-    - **paper_id**: 论文 ID
+    - **paper_id**: Paper ID
     """
     try:
         status = await service.get_status(paper_id)
@@ -98,22 +116,24 @@ async def get_paper_status(
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting paper status {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取状态失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get status: {str(e)}"
+        ) from e
 
 
 @router.get("/{paper_id}/content")
 async def get_paper_content(
-    paper_id: str = Path(..., description="论文 ID"),
+    paper_id: str = Path(..., description="Paper ID"),
     content_type: str = Query(
-        "translation", description="内容类型: source, translation, heartfelt"
+        "translation", description="Content type: source, translation, heartfelt"
     ),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    获取论文内容.
+    Get paper content.
 
-    - **paper_id**: 论文 ID
-    - **content_type**: 内容类型
+    - **paper_id**: Paper ID
+    - **content_type**: Content type
     """
     if content_type not in ["source", "translation", "heartfelt"]:
         raise HTTPException(status_code=400, detail="无效的内容类型")
@@ -125,24 +145,26 @@ async def get_paper_content(
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting paper content {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取内容失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get content: {str(e)}"
+        ) from e
 
 
 @router.get("/", response_model=PaperListResponse)
 async def list_papers(
-    category: str | None = Query(None, description="按分类筛选"),
-    status: str | None = Query(None, description="按状态筛选"),
-    limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
-    offset: int = Query(0, ge=0, description="偏移量"),
+    category: str | None = Query(None, description="Filter by category"),
+    status: str | None = Query(None, description="Filter by status"),
+    limit: int = Query(20, ge=1, le=100, description="Return limit"),
+    offset: int = Query(0, ge=0, description="Offset"),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    获取论文列表.
+    Get list of papers.
 
-    - **category**: 分类筛选
-    - **status**: 状态筛选
-    - **limit**: 返回数量限制
-    - **offset**: 偏移量
+    - **category**: Category filter
+    - **status**: Status filter
+    - **limit**: Return limit
+    - **offset**: Offset
     """
     try:
         papers = await service.list_papers(
@@ -151,18 +173,20 @@ async def list_papers(
         return papers
     except Exception as e:
         logger.error(f"Error listing papers: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取列表失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get list: {str(e)}"
+        ) from e
 
 
 @router.delete("/{paper_id}")
 async def delete_paper(
-    paper_id: str = Path(..., description="论文 ID"),
+    paper_id: str = Path(..., description="Paper ID"),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    删除论文及其相关数据.
+    Delete a paper and its related data.
 
-    - **paper_id**: 论文 ID
+    - **paper_id**: Paper ID
     """
     try:
         result = await service.delete_paper(paper_id)
@@ -171,20 +195,20 @@ async def delete_paper(
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error deleting paper {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}") from e
 
 
 @router.post("/batch", response_model=BatchProcessRequest)
 async def batch_process_papers(
     paper_ids: list[str] = Body(...),
-    workflow: str = Query("full", description="处理工作流"),
+    workflow: str = Query("full", description="Processing workflow"),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    批量处理论文.
+    Batch process papers.
 
-    - **paper_ids**: 论文 ID 列表
-    - **workflow**: 处理工作流
+    - **paper_ids**: List of paper IDs
+    - **workflow**: Processing workflow
     """
     if len(paper_ids) > 50:
         raise HTTPException(status_code=400, detail="批量处理最多支持 50 个文件")
@@ -199,13 +223,13 @@ async def batch_process_papers(
 
 @router.get("/{paper_id}/report")
 async def get_paper_report(
-    paper_id: str = Path(..., description="论文 ID"),
+    paper_id: str = Path(..., description="Paper ID"),
     service: PaperService = Depends(get_paper_service),
 ) -> dict[str, Any]:
     """
-    获取论文的深度阅读报告.
+    Get paper's in-depth reading report.
 
-    - **paper_id**: 论文 ID
+    - **paper_id**: Paper ID
     """
     try:
         report = await service.get_paper_report(paper_id)
@@ -214,4 +238,48 @@ async def get_paper_report(
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error getting paper report {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取报告失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get report: {str(e)}"
+        ) from e
+
+
+@router.post("/{paper_id}/translate")
+async def translate_paper(
+    paper_id: str = Path(..., description="Paper ID"),
+    service: PaperService = Depends(get_paper_service),
+) -> dict[str, Any]:
+    """
+    Translate a paper.
+
+    - **paper_id**: Paper ID
+    """
+    try:
+        result = await service.translate_paper(paper_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Error translating paper {paper_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Translation failed: {str(e)}"
+        ) from e
+
+
+@router.post("/{paper_id}/analyze")
+async def analyze_paper(
+    paper_id: str = Path(..., description="Paper ID"),
+    service: PaperService = Depends(get_paper_service),
+) -> dict[str, Any]:
+    """
+    Analyze a paper (in-depth reading).
+
+    - **paper_id**: Paper ID
+    """
+    try:
+        result = await service.analyze_paper(paper_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Error analyzing paper {paper_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}") from e

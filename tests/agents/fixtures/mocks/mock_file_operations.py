@@ -1,6 +1,7 @@
 """Mock configurations for file operations."""
 
 import json
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +40,7 @@ class MockFileManager:
         ).encode()
 
     def exists(self, path: str) -> bool:
-        """Mock Path.exists() method."""
+        """Mock exists() method for direct calls to MockFileManager."""
         path_str = str(path)
         if path_str in self.files:
             return True
@@ -48,20 +49,51 @@ class MockFileManager:
             path_str == d or path_str.startswith(f"{d}/") for d in self.directories
         )
 
+    def exists_path(self) -> bool:
+        """Mock exists() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        path_str = str(self)
+        if path_str in mock_file_manager.files:
+            return True
+        # Check if it's a directory
+        return any(
+            path_str == d or path_str.startswith(f"{d}/")
+            for d in mock_file_manager.directories
+        )
+
     def is_file(self, path: str) -> bool:
-        """Mock Path.is_file() method."""
+        """Mock is_file() method for direct calls to MockFileManager."""
         return str(path) in self.files
 
+    def is_file_path(self) -> bool:
+        """Mock is_file() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        return str(self) in mock_file_manager.files
+
     def is_dir(self, path: str) -> bool:
-        """Mock Path.is_dir() method."""
+        """Mock is_dir() method for direct calls to MockFileManager."""
         path_str = str(path)
         return path_str in self.directories
 
+    def is_dir_path(self) -> bool:
+        """Mock is_dir() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        path_str = str(self)
+        return path_str in mock_file_manager.directories
+
     def read_bytes(self, path: str) -> bytes:
-        """Mock read_bytes() method."""
+        """Mock read_bytes() method for direct calls to MockFileManager."""
         if str(path) in self.files:
             return self.files[str(path)]
         raise FileNotFoundError(f"File not found: {path}")
+
+    def read_bytes_path(self) -> bytes:
+        """Mock read_bytes() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        path_str = str(self)
+        if path_str in mock_file_manager.files:
+            return mock_file_manager.files[path_str]
+        raise FileNotFoundError(f"File not found: {self}")
 
     def read_text(self, path: str, encoding: str = "utf-8") -> str:
         """Mock read_text() method."""
@@ -69,22 +101,41 @@ class MockFileManager:
         return content.decode(encoding)
 
     def write_bytes(self, path: str, content: bytes):
-        """Mock write_bytes() method."""
+        """Mock write_bytes() method for direct calls to MockFileManager."""
         self.files[str(path)] = content
+
+    def write_bytes_path(self, content: bytes):
+        """Mock write_bytes() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        mock_file_manager.files[str(self)] = content
 
     def write_text(self, path: str, content: str, encoding: str = "utf-8"):
         """Mock write_text() method."""
         self.files[str(path)] = content.encode(encoding)
 
-    def mkdir(self, path: str, parents: bool = False, exist_ok: bool = False):
-        """Mock mkdir() method."""
-        path_str = str(path)
+    def mkdir(self, path=None, parents: bool = False, exist_ok: bool = False):
+        """Mock mkdir() method for direct calls to MockFileManager."""
+        if path is None:
+            # Called without path argument
+            path_str = str(self)
+        else:
+            # Called with path argument
+            path_str = str(path)
+
         if not exist_ok and path_str in self.directories:
             raise FileExistsError(f"Directory exists: {path}")
         self.directories.add(path_str)
 
+    def mkdir_path(self, parents: bool = False, exist_ok: bool = False, **kwargs):
+        """Mock mkdir() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        path_str = str(self)
+        if not exist_ok and path_str in mock_file_manager.directories:
+            raise FileExistsError(f"Directory exists: {self}")
+        mock_file_manager.directories.add(path_str)
+
     def iterdir(self, path: str):
-        """Mock iterdir() method."""
+        """Mock iterdir() method for direct calls to MockFileManager."""
         path_str = str(path)
         files = []
         for f in self.files:
@@ -99,12 +150,38 @@ class MockFileManager:
                     files.append(Path(rel_path))
         return iter(files)
 
+    def iterdir_path(self):
+        """Mock iterdir() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        path_str = str(self)
+        files = []
+        for f in mock_file_manager.files:
+            if f.startswith(f"{path_str}/"):
+                rel_path = f[len(path_str) + 1 :]
+                if "/" not in rel_path:  # Direct child only
+                    files.append(Path(rel_path))
+        for d in mock_file_manager.directories:
+            if d.startswith(f"{path_str}/"):
+                rel_path = d[len(path_str) + 1 :]
+                if "/" not in rel_path:  # Direct child only
+                    files.append(Path(rel_path))
+        return iter(files)
+
     def unlink(self, path: str):
-        """Mock unlink() method."""
+        """Mock unlink() method for direct calls to MockFileManager."""
         if str(path) in self.files:
             del self.files[str(path)]
         else:
             raise FileNotFoundError(f"File not found: {path}")
+
+    def unlink_path(self):
+        """Mock unlink() method for pathlib.Path."""
+        # When called as a bound method, self is the Path object
+        path_str = str(self)
+        if path_str in mock_file_manager.files:
+            del mock_file_manager.files[path_str]
+        else:
+            raise FileNotFoundError(f"File not found: {self}")
 
     def rmtree(self, path: str):
         """Mock rmtree() method."""
@@ -146,6 +223,28 @@ class MockAiofiles:
         return MockAsyncFile(path, mode, self.file_manager)
 
 
+# Create a global mock open function
+def mock_open_builtins(path, mode="r", **kwargs):
+    """Mock built-in open() function."""
+    return MockFile(path, mode, mock_file_manager)
+
+
+def mock_copyfileobj(fsrc, fdst, length=16 * 1024):
+    """Mock shutil.copyfileobj function."""
+    # Read all data from source and write to destination
+    if hasattr(fsrc, "read"):
+        content = fsrc.read()
+    else:
+        # Handle file-like objects that might not have read method
+        content = fsrc
+
+    if hasattr(fdst, "write"):
+        fdst.write(content)
+    else:
+        # Handle string path destination
+        mock_file_manager.write_bytes(fdst, content)
+
+
 class MockAsyncFile:
     """Mock async file object."""
 
@@ -179,6 +278,52 @@ class MockAsyncFile:
 
     async def readall(self) -> bytes:
         """Async read all method."""
+        return self._content
+
+
+class MockFile:
+    """Mock file object for built-in open() function."""
+
+    def __init__(self, path: str, mode: str, file_manager: MockFileManager):
+        self.path = str(path)
+        self.mode = mode
+        self.file_manager = file_manager
+        self._content = None
+        self._position = 0
+
+    def __enter__(self):
+        """Context manager entry."""
+        if "r" in self.mode:
+            if self.file_manager.exists(self.path):
+                self._content = self.file_manager.read_bytes(self.path)
+            else:
+                raise FileNotFoundError(f"File not found: {self.path}")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        if "w" in self.mode or "a" in self.mode:
+            # If we have content written, save it
+            if hasattr(self, "_written_content"):
+                self.file_manager.write_bytes(self.path, self._written_content)
+
+    def read(self, size: int = -1) -> bytes:
+        """Read method."""
+        if size == -1:
+            return self._content[self._position :]
+        else:
+            result = self._content[self._position : self._position + size]
+            self._position += size
+            return result
+
+    def write(self, content: bytes):
+        """Write method."""
+        if not hasattr(self, "_written_content"):
+            self._written_content = b""
+        self._written_content += content
+
+    def readall(self) -> bytes:
+        """Read all method."""
         return self._content
 
 
@@ -272,30 +417,96 @@ def get_mock_async_file_manager() -> MockAsyncFileManager:
 
 
 # Utility functions for patching
-def patch_file_operations():
-    """Create patches for file operations."""
-    from unittest.mock import patch
+class FileOperationsPatcher:
+    """Context manager for patching file operations."""
 
-    patches = []
+    def __init__(self, custom_file_manager=None, custom_aiofiles=None):
+        """Initialize the patcher with optional custom mocks."""
+        self.file_manager = custom_file_manager or mock_file_manager
+        self.aiofiles = custom_aiofiles or mock_aiofiles
+        self.patches = []
+        self.patched = False
 
-    # Patch Path methods
-    patches.append(patch("pathlib.Path.exists", side_effect=mock_file_manager.exists))
-    patches.append(patch("pathlib.Path.is_file", side_effect=mock_file_manager.is_file))
-    patches.append(patch("pathlib.Path.is_dir", side_effect=mock_file_manager.is_dir))
-    patches.append(
-        patch("pathlib.Path.read_bytes", side_effect=mock_file_manager.read_bytes)
-    )
-    patches.append(
-        patch("pathlib.Path.write_bytes", side_effect=mock_file_manager.write_bytes)
-    )
-    patches.append(patch("pathlib.Path.mkdir", side_effect=mock_file_manager.mkdir))
-    patches.append(patch("pathlib.Path.iterdir", side_effect=mock_file_manager.iterdir))
-    patches.append(patch("pathlib.Path.unlink", side_effect=mock_file_manager.unlink))
+    def __enter__(self):
+        """Enter the context and apply all patches."""
+        from unittest.mock import patch
 
-    # Patch aiofiles
-    patches.append(patch("aiofiles.open", side_effect=mock_aiofiles.open))
+        if self.patched:
+            raise RuntimeError("Patcher already in use")
 
-    # Patch os.path.getsize
-    patches.append(patch("os.path.getsize", side_effect=mock_file_manager.getsize))
+        # Patch Path methods
+        self.patches.append(
+            patch("pathlib.Path.exists", side_effect=self.file_manager.exists_path)
+        )
+        self.patches.append(
+            patch("pathlib.Path.is_file", side_effect=self.file_manager.is_file_path)
+        )
+        self.patches.append(
+            patch("pathlib.Path.is_dir", side_effect=self.file_manager.is_dir_path)
+        )
+        self.patches.append(
+            patch(
+                "pathlib.Path.read_bytes", side_effect=self.file_manager.read_bytes_path
+            )
+        )
+        self.patches.append(
+            patch(
+                "pathlib.Path.write_bytes",
+                side_effect=self.file_manager.write_bytes_path,
+            )
+        )
+        self.patches.append(
+            patch("pathlib.Path.mkdir", side_effect=self.file_manager.mkdir_path)
+        )
+        self.patches.append(
+            patch("pathlib.Path.iterdir", side_effect=self.file_manager.iterdir_path)
+        )
+        self.patches.append(
+            patch("pathlib.Path.unlink", side_effect=self.file_manager.unlink_path)
+        )
 
-    return patches
+        # Patch aiofiles
+        self.patches.append(patch("aiofiles.open", side_effect=self.aiofiles.open))
+
+        # Patch built-in open
+        self.patches.append(patch("builtins.open", side_effect=mock_open_builtins))
+
+        # Patch shutil.copyfileobj
+        self.patches.append(patch("shutil.copyfileobj", side_effect=mock_copyfileobj))
+
+        # Patch os.path.getsize
+        self.patches.append(
+            patch("os.path.getsize", side_effect=self.file_manager.getsize)
+        )
+
+        # Start all patches
+        for p in self.patches:
+            p.start()
+
+        self.patched = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context and remove all patches."""
+        if not self.patched:
+            return
+
+        # Stop all patches in reverse order
+        for p in reversed(self.patches):
+            p.stop()
+
+        self.patches.clear()
+        self.patched = False
+
+
+def patch_file_operations(custom_file_manager=None, custom_aiofiles=None):
+    """Create a context manager for patching file operations.
+
+    Args:
+        custom_file_manager: Optional custom MockFileManager instance
+        custom_aiofiles: Optional custom MockAiofiles instance
+
+    Returns:
+        FileOperationsPatcher context manager instance
+    """
+    return FileOperationsPatcher(custom_file_manager, custom_aiofiles)

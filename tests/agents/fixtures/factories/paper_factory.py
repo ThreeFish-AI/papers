@@ -47,7 +47,9 @@ class PaperInfoFactory(factory.Factory):
     class Meta:
         model = PaperInfo
 
-    paper_id = factory.Faker("uuid4")
+    paper_id = factory.LazyAttribute(
+        lambda obj: f"{obj.category}_20241212_143022_{obj.filename}"
+    )
     filename = factory.Faker("file_name", extension="pdf")
     category = fuzzy.FuzzyChoice(
         [
@@ -94,7 +96,9 @@ class PaperUploadResponseFactory(factory.Factory):
     class Meta:
         model = PaperUploadResponse
 
-    paper_id = factory.Faker("uuid4")
+    paper_id = factory.LazyAttribute(
+        lambda obj: f"{obj.category}_20241212_143022_{obj.filename}"
+    )
     filename = factory.Faker("file_name", extension="pdf")
     category = factory.LazyAttribute(
         lambda obj: fuzzy.FuzzyChoice(
@@ -138,7 +142,9 @@ class PaperStatusFactory(factory.Factory):
     class Meta:
         model = PaperStatus
 
-    paper_id = factory.Faker("uuid4")
+    paper_id = factory.LazyAttribute(
+        lambda obj: f"{obj.category}_20241212_143022_{obj.filename}"
+    )
     status = fuzzy.FuzzyChoice(["uploaded", "processing", "completed", "failed"])
     workflows = factory.LazyFunction(
         lambda: {
