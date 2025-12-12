@@ -2,13 +2,23 @@ name: Auto-fix Ruff Issues
 
 on:
   push:
-    branches:
-      - "**" # 所有分支
+    branches-ignore:
+      - "fix/ruff-auto-fix-*"
+      - "dependabot/**"
 
 # Workflow-level permissions
 permissions:
   contents: write
   pull-requests: write
+  # Additional permissions for gh CLI
+  actions: read
+  checks: write
+  deployments: write
+  issues: write
+  packages: write
+  repository-projects: write
+  security-events: write
+  statuses: write
 
 # Environment variables
 env:
@@ -29,6 +39,8 @@ jobs:
   ruff-check-and-fix:
     name: Check and Fix Ruff Issues
     runs-on: ubuntu-latest
+    # Skip if this is an auto-fix branch to avoid infinite loops
+    if: "!startsWith(github.ref, 'refs/heads/fix/ruff-auto-fix-')"
 
     permissions:
       contents: write
@@ -123,7 +135,7 @@ jobs:
     name: Create/Update PR
     runs-on: ubuntu-latest
     needs: ruff-check-and-fix
-    if: always() && needs.ruff-check-and-fix.result == 'success'
+    if: always() && needs.ruff-check-and-fix.result == 'success' && !startsWith(github.ref, 'refs/heads/fix/ruff-auto-fix-')
 
     permissions:
       contents: write
