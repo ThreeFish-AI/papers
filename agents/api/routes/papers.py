@@ -1,8 +1,18 @@
 """Papers management routes."""
 
 import logging
+from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    File,
+    HTTPException,
+    Path,
+    Query,
+    UploadFile,
+)
 
 from agents.api.models.paper import (
     BatchProcessRequest,

@@ -1,6 +1,7 @@
 """Task management routes."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
