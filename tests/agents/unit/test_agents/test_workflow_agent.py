@@ -17,9 +17,13 @@ class TestWorkflowAgent:
     """Test cases for WorkflowAgent."""
 
     @pytest.fixture
-    def workflow_agent(self):
+    def workflow_agent(self, temp_dir):
         """Create a WorkflowAgent instance for testing."""
-        config = {"papers_dir": "/test/papers", "max_retries": 3, "timeout": 30}
+        config = {
+            "papers_dir": str(temp_dir / "papers"),
+            "max_retries": 3,
+            "timeout": 30,
+        }
         agent = WorkflowAgent(config)
 
         # Replace sub-agents with mocks
@@ -216,7 +220,7 @@ class TestWorkflowAgent:
             assert "Unsupported workflow" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_file_not_found(self, workflow_agent):
+    async def test_file_not_found(self, workflow_agent, temp_dir):
         """Test handling of non-existent file."""
         input_data = {
             "source_path": "/nonexistent/file.pdf",
@@ -275,7 +279,7 @@ class TestWorkflowAgent:
             assert result["error"] == "Translation failed"
 
     @pytest.mark.asyncio
-    async def test_validation_failure(self, workflow_agent):
+    async def test_validation_failure(self, workflow_agent, temp_dir):
         """Test input validation failure."""
         # Missing required fields
         input_data = {
@@ -330,7 +334,7 @@ class TestWorkflowAgent:
             assert "options" in call_args
 
     @pytest.mark.asyncio
-    async def test_async_heartfelt_analysis(self, workflow_agent):
+    async def test_async_heartfelt_analysis(self, workflow_agent, temp_dir):
         """Test async heartfelt analysis task creation."""
         source_path = "/test/paper.pdf"
         extract_data = {"content": "Content..."}
@@ -355,14 +359,14 @@ class TestWorkflowAgent:
         workflow_agent.heartfelt_agent.analyze.assert_called_once()
         workflow_agent._save_heartfelt_result.assert_called_once()
 
-    def test_validate_input_success(self, workflow_agent):
+    def test_validate_input_success(self, workflow_agent, temp_dir):
         """Test successful input validation."""
         valid_input = {"source_path": "/test/paper.pdf", "workflow": "full"}
 
         result = asyncio.run(workflow_agent.validate_input(valid_input))
         assert result is True
 
-    def test_validate_input_failure(self, workflow_agent):
+    def test_validate_input_failure(self, workflow_agent, temp_dir):
         """Test input validation failure."""
         invalid_input = {
             "source_path": "",  # Missing or empty
@@ -395,7 +399,7 @@ class TestWorkflowAgent:
             assert mock_file_manager.exists(f"{output_dir}/translated.md")
 
     @pytest.mark.asyncio
-    async def test_batch_process_papers(self, workflow_agent):
+    async def test_batch_process_papers(self, workflow_agent, temp_dir):
         """Test batch processing of multiple papers."""
         if not hasattr(workflow_agent, "batch_process_papers"):
             pytest.skip("batch_process_papers method not implemented")
@@ -424,7 +428,7 @@ class TestWorkflowAgent:
             assert result["failure_count"] == 1
 
     @pytest.mark.asyncio
-    async def test_get_workflow_status(self, workflow_agent):
+    async def test_get_workflow_status(self, workflow_agent, temp_dir):
         """Test getting workflow status."""
         if not hasattr(workflow_agent, "get_workflow_status"):
             pytest.skip("get_workflow_status method not implemented")

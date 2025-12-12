@@ -313,10 +313,7 @@ class TestPapersRoutes:
     def test_delete_paper_success(self, client, mock_paper_service):
         """Test successful paper deletion."""
         paper_id = "test_paper_123"
-        mock_paper_service.delete_paper.return_value = {
-            "deleted": True,
-            "paper_id": paper_id,
-        }
+        mock_paper_service.delete_paper.return_value = True
 
         response = client.delete(f"/api/papers/{paper_id}")
 

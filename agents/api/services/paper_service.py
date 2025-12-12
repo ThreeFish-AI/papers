@@ -85,12 +85,15 @@ class PaperService:
             logger.error(f"Error uploading paper: {str(e)}")
             raise
 
-    async def process_paper(self, paper_id: str, workflow: str) -> dict[str, Any]:
+    async def process_paper(
+        self, paper_id: str, workflow: str, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """启动处理流程.
 
         Args:
             paper_id: 论文ID
             workflow: 工作流类型
+            options: 处理选项
 
         Returns:
             处理结果
@@ -109,6 +112,7 @@ class PaperService:
                     "source_path": str(source_path),
                     "workflow": workflow,
                     "paper_id": paper_id,
+                    "options": options or {},
                 }
             )
 

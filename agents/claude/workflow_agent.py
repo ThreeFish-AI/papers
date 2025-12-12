@@ -31,6 +31,26 @@ class WorkflowAgent(BaseAgent):
         self.translation_agent = TranslationAgent(config)
         self.heartfelt_agent = HeartfeltAgent(config)
 
+    async def validate_input(self, input_data: dict[str, Any]) -> bool:
+        """验证输入数据.
+
+        Args:
+            input_data: 输入数据
+
+        Returns:
+            验证是否通过
+        """
+        # Check if input_data is a dict
+        if not isinstance(input_data, dict):
+            return False
+
+        # Check if source_path exists and is not empty
+        source_path = input_data.get("source_path")
+        if not source_path or not isinstance(source_path, str):
+            return False
+
+        return True
+
     async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """处理文档的主入口.
 
@@ -159,6 +179,7 @@ class WorkflowAgent(BaseAgent):
         return {
             "success": result["success"],
             "data": result.get("data"),
+            "error": result.get("error") if not result["success"] else None,
             "status": "completed" if result["success"] else "failed",
             "workflow": "extract_only",
         }
@@ -200,6 +221,9 @@ class WorkflowAgent(BaseAgent):
         return {
             "success": translate_result["success"],
             "data": translate_result.get("data"),
+            "error": translate_result.get("error")
+            if not translate_result["success"]
+            else None,
             "status": "completed" if translate_result["success"] else "failed",
             "workflow": "translate_only",
         }
@@ -237,6 +261,9 @@ class WorkflowAgent(BaseAgent):
         return {
             "success": heartfelt_result["success"],
             "data": heartfelt_result.get("data"),
+            "error": heartfelt_result.get("error")
+            if not heartfelt_result["success"]
+            else None,
             "status": "completed" if heartfelt_result["success"] else "failed",
             "workflow": "heartfelt_only",
         }
