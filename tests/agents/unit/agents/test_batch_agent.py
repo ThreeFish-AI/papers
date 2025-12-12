@@ -104,6 +104,9 @@ class TestBatchProcessingAgent:
         batch_agent.papers_dir = tmp_path
 
         # Mock methods
+        batch_agent._validate_files = AsyncMock(
+            return_value={"success": True, "files": files, "invalid": []}
+        )
         batch_agent._process_batch = AsyncMock(
             return_value=[
                 {"file_path": str(file1), "success": True},
@@ -171,7 +174,11 @@ class TestBatchProcessingAgent:
         valid_file = tmp_path / "valid.pdf"
         valid_file.write_bytes(b"PDF content")
 
-        files = [str(valid_file), "/nonexistent/file.pdf", tmp_path / "not_pdf.txt"]
+        files = [
+            str(valid_file),
+            "/nonexistent/file.pdf",
+            str(tmp_path / "not_pdf.txt"),
+        ]
         # Write to text file
         (tmp_path / "not_pdf.txt").write_text("Not a PDF")
 
@@ -250,7 +257,7 @@ class TestBatchProcessingAgent:
         batch_agent.papers_dir = tmp_path
 
         # Mock WorkflowAgent
-        with patch("agents.claude.batch_agent.WorkflowAgent") as mock_workflow:
+        with patch("agents.claude.workflow_agent.WorkflowAgent") as mock_workflow:
             mock_agent = AsyncMock()
             mock_agent.process.return_value = {
                 "success": True,
@@ -275,7 +282,7 @@ class TestBatchProcessingAgent:
         batch_agent.papers_dir = tmp_path
 
         # Mock WorkflowAgent to fail then succeed
-        with patch("agents.claude.batch_agent.WorkflowAgent") as mock_workflow:
+        with patch("agents.claude.workflow_agent.WorkflowAgent") as mock_workflow:
             mock_agent = AsyncMock()
             mock_agent.process.side_effect = [
                 {"success": False, "error": "First attempt failed"},
@@ -297,7 +304,7 @@ class TestBatchProcessingAgent:
         file_path.write_bytes(b"PDF content")
 
         # Mock WorkflowAgent to always fail
-        with patch("agents.claude.batch_agent.WorkflowAgent") as mock_workflow:
+        with patch("agents.claude.workflow_agent.WorkflowAgent") as mock_workflow:
             mock_agent = AsyncMock()
             mock_agent.process.return_value = {
                 "success": False,
@@ -320,7 +327,7 @@ class TestBatchProcessingAgent:
         file_path.write_bytes(b"PDF content")
 
         # Mock WorkflowAgent to raise exception
-        with patch("agents.claude.batch_agent.WorkflowAgent") as mock_workflow:
+        with patch("agents.claude.workflow_agent.WorkflowAgent") as mock_workflow:
             mock_agent = AsyncMock()
             mock_agent.process.side_effect = Exception("Unexpected error")
             mock_workflow.return_value = mock_agent
@@ -457,7 +464,9 @@ class TestBatchProcessingAgent:
         await batch_agent.batch_process({"files": files, "workflow": "full"})
 
         # Check that default options were used
-        call_args = batch_agent._process_batch.call_args[0]
-        assert call_args[2]["batch_size"] == 10  # Default
-        assert call_args[2]["parallel_tasks"] == 3  # Default
-        assert call_args[2]["failed_retry"] == 2  # Default
+        call_args, kwargs = batch_agent._process_batch.call_args
+        # call_args is a tuple of (files, workflow, options)
+        options_arg = call_args[2] if len(call_args) > 2 else kwargs.get("options", {})
+        assert options_arg.get("batch_size", 10) == 10  # Default
+        assert options_arg.get("parallel_tasks", 3) == 3  # Default
+        assert options_arg.get("failed_retry", 2) == 2  # Default

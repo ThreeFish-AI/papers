@@ -35,9 +35,7 @@ class TestWebSocketService:
         status = "processing"
 
         # Mock the imported function
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             await websocket_service.send_task_update(task_id, status)
 
             mock_send.assert_called_once_with(task_id, status, 0.0, "")
@@ -50,9 +48,7 @@ class TestWebSocketService:
         progress = 75.5
         message = "Processing file..."
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             await websocket_service.send_task_update(task_id, status, progress, message)
 
             mock_send.assert_called_once_with(
@@ -65,9 +61,7 @@ class TestWebSocketService:
         task_id = "task_123"
         status = "starting"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             await websocket_service.send_task_update(
                 task_id, status, 0.0, "Starting..."
             )
@@ -80,9 +74,7 @@ class TestWebSocketService:
         task_id = "task_123"
         status = "processing"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             await websocket_service.send_task_update(task_id, status, None, None)
 
             mock_send.assert_called_once_with(task_id, status, 0.0, "")
@@ -93,9 +85,7 @@ class TestWebSocketService:
         task_id = "task_123"
         result = {"output_file": "translated.pdf", "word_count": 5000}
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_completion"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_completion") as mock_send:
             await websocket_service.send_task_completion(task_id, result)
 
             mock_send.assert_called_once_with(task_id, result, "")
@@ -106,9 +96,7 @@ class TestWebSocketService:
         task_id = "task_123"
         error = "Translation failed: timeout"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_completion"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_completion") as mock_send:
             await websocket_service.send_task_completion(task_id, error=error)
 
             mock_send.assert_called_once_with(task_id, {}, error)
@@ -120,9 +108,7 @@ class TestWebSocketService:
         result = {"partial_output": "some content"}
         error = "Warning: incomplete translation"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_completion"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_completion") as mock_send:
             await websocket_service.send_task_completion(task_id, result, error)
 
             mock_send.assert_called_once_with(task_id, result, error)
@@ -132,9 +118,7 @@ class TestWebSocketService:
         """Test send_task_completion with None values."""
         task_id = "task_123"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_completion"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_completion") as mock_send:
             await websocket_service.send_task_completion(task_id, None, None)
 
             mock_send.assert_called_once_with(task_id, {}, "")
@@ -146,9 +130,7 @@ class TestWebSocketService:
         total = 10
         processed = 5
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             await websocket_service.send_batch_progress(batch_id, total, processed)
 
             mock_send.assert_called_once_with(batch_id, total, processed, "")
@@ -161,9 +143,7 @@ class TestWebSocketService:
         processed = 5
         current_file = "paper5.pdf"
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             await websocket_service.send_batch_progress(
                 batch_id, total, processed, current_file
             )
@@ -177,9 +157,7 @@ class TestWebSocketService:
         total = 10
         processed = 5
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             await websocket_service.send_batch_progress(
                 batch_id, total, processed, None
             )
@@ -194,9 +172,7 @@ class TestWebSocketService:
         processed = 10
         current_file = None
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             await websocket_service.send_batch_progress(
                 batch_id, total, processed, current_file
             )
@@ -209,9 +185,7 @@ class TestWebSocketService:
         task_id = "task_123"
         status = "processing"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             mock_send.side_effect = Exception("WebSocket error")
 
             with pytest.raises(Exception, match="WebSocket error"):
@@ -222,9 +196,7 @@ class TestWebSocketService:
         """Test send_task_completion exception handling."""
         task_id = "task_123"
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_completion"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_completion") as mock_send:
             mock_send.side_effect = Exception("WebSocket connection lost")
 
             with pytest.raises(Exception, match="WebSocket connection lost"):
@@ -237,9 +209,7 @@ class TestWebSocketService:
         total = 10
         processed = 5
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             mock_send.side_effect = Exception("Broadcast failed")
 
             with pytest.raises(Exception, match="Broadcast failed"):
@@ -262,9 +232,7 @@ class TestWebSocketService:
         status = "processing"
         progress = 33.333333
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             await websocket_service.send_task_update(task_id, status, progress)
 
             mock_send.assert_called_once_with(task_id, status, 33.333333, "")
@@ -276,9 +244,7 @@ class TestWebSocketService:
         status = "processing"
         message = ""
 
-        with patch(
-            "agents.api.services.websocket_service.send_task_update"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_task_update") as mock_send:
             await websocket_service.send_task_update(
                 task_id, status, progress=50, message=message
             )
@@ -292,9 +258,7 @@ class TestWebSocketService:
         total = 0
         processed = 0
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             await websocket_service.send_batch_progress(batch_id, total, processed)
 
             mock_send.assert_called_once_with(batch_id, 0, 0, "")
@@ -313,9 +277,7 @@ class TestWebSocketService:
             (100, 100),  # Complete
         ]
 
-        with patch(
-            "agents.api.services.websocket_service.send_batch_progress"
-        ) as mock_send:
+        with patch("agents.api.routes.websocket.send_batch_progress") as mock_send:
             for processed, expected_processed in test_cases:
                 await websocket_service.send_batch_progress(batch_id, total, processed)
                 mock_send.assert_called_with(batch_id, total, expected_processed, "")
