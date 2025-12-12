@@ -3,7 +3,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -67,7 +67,7 @@ app.add_middleware(
 
 # 全局异常处理
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """全局异常处理器."""
     logger.error(f"Global exception: {str(exc)}", exc_info=True)
     return JSONResponse(
@@ -77,7 +77,7 @@ async def global_exception_handler(request, exc):
 
 # 健康检查
 @app.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     """健康检查接口."""
     return {"status": "healthy", "service": "agentic-ai-papers-api", "version": "1.0.0"}
 
@@ -89,7 +89,7 @@ app.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 
 # 根路径
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """根路径."""
     return {
         "message": "Agentic AI Papers API",
@@ -101,13 +101,13 @@ async def root():
 
 # 启动事件
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """启动事件."""
     logger.info("Agentic AI Papers API started successfully")
 
 
 # 关闭事件
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """关闭事件."""
     logger.info("Agentic AI Papers API shutdown")

@@ -20,7 +20,9 @@ class HeartfeltAgent(BaseAgent):
             config: 配置参数
         """
         super().__init__("heartfelt", config)
-        self.papers_dir = Path(config.get("papers_dir", "papers"))
+        self.papers_dir = Path(
+            config.get("papers_dir", "papers") if config else "papers"
+        )
         self.default_options = {
             "generate_summary": True,
             "generate_insights": True,
@@ -156,7 +158,7 @@ class HeartfeltAgent(BaseAgent):
 
         return processed_data
 
-    async def _save_analysis(self, paper_id: str, data: dict[str, Any]):
+    async def _save_analysis(self, paper_id: str, data: dict[str, Any]) -> None:
         """保存分析结果.
 
         Args:

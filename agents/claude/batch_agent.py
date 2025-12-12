@@ -22,7 +22,9 @@ class BatchProcessingAgent(BaseAgent):
             config: 配置参数
         """
         super().__init__("batch_processor", config)
-        self.papers_dir = Path(config.get("papers_dir", "papers"))
+        self.papers_dir = Path(
+            config.get("papers_dir", "papers") if config else "papers"
+        )
         self.default_options = {
             "batch_size": 10,  # 每批处理的文件数
             "parallel_tasks": 3,  # 并行任务数
@@ -191,7 +193,7 @@ class BatchProcessingAgent(BaseAgent):
         # 控制并发数
         semaphore = asyncio.Semaphore(parallel_tasks)
 
-        async def controlled_process(task):
+        async def controlled_process(task: Any) -> Any:
             async with semaphore:
                 return await task
 
@@ -211,7 +213,14 @@ class BatchProcessingAgent(BaseAgent):
                     }
                 )
             else:
-                processed_results.append(result)
+                processed_results.append(result) if isinstance(
+                    result, dict
+                ) else processed_results.append(
+                    {
+                        "success": False,
+                        "error": f"Unexpected result type: {type(result)}",
+                    }
+                )
 
         return processed_results
 
@@ -365,7 +374,7 @@ class BatchProcessingAgent(BaseAgent):
         """
         # 这里可以实现批次状态跟踪
         # 例如从数据库或文件中读取状态
-        pass
+        return {"batch_id": batch_id, "status": "not_implemented"}
 
     async def cancel_batch(self, batch_id: str) -> dict[str, Any]:
         """取消批次处理.
@@ -377,4 +386,8 @@ class BatchProcessingAgent(BaseAgent):
             取消结果
         """
         # 这里可以实现批次取消逻辑
-        pass
+        return {
+            "batch_id": batch_id,
+            "status": "cancelled",
+            "message": "not_implemented",
+        }

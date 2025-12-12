@@ -80,12 +80,14 @@ class PDFProcessingAgent(BaseAgent):
 
             if result["success"]:
                 # 提取元数据
-                metadata = self._extract_metadata(result["data"], file_path)
+                metadata = self._extract_metadata(result["data"], file_path or "")
 
                 # 处理图片路径
                 if options.get("extract_images") and "images" in result["data"]:
                     result["data"]["images"] = self._process_images(
-                        result["data"]["images"], file_path, options.get("paper_id")
+                        result["data"]["images"],
+                        file_path or "",
+                        options.get("paper_id") or "",
                     )
 
                 return {
@@ -112,7 +114,7 @@ class PDFProcessingAgent(BaseAgent):
             return {"success": False, "error": str(e)}
 
     async def batch_extract(
-        self, file_paths: list, options: dict[str, Any] | None = None
+        self, file_paths: list[str], options: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """批量提取 PDF 内容.
 
@@ -211,8 +213,8 @@ class PDFProcessingAgent(BaseAgent):
         return metadata
 
     def _process_images(
-        self, images: list, pdf_path: str, paper_id: str | None = None
-    ) -> list:
+        self, images: list[dict[str, Any]], pdf_path: str, paper_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """处理提取的图片信息.
 
         Args:

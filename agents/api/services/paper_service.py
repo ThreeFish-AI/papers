@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class PaperService:
     """论文处理服务."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化 PaperService."""
         self.papers_dir = Path(settings.PAPERS_DIR)
         self.workflow_agent = WorkflowAgent({"papers_dir": str(self.papers_dir)})
@@ -39,7 +39,7 @@ class PaperService:
         """
         # 生成唯一ID和文件路径
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = self._sanitize_filename(file.filename)
+        safe_filename = self._sanitize_filename(file.filename or "")
         paper_id = f"{category}_{timestamp}_{safe_filename}"
 
         # 确保目录存在
@@ -55,7 +55,7 @@ class PaperService:
             file_size = os.path.getsize(source_path)
 
             # 保存元数据
-            metadata = {
+            metadata: dict[str, Any] = {
                 "paper_id": paper_id,
                 "filename": file.filename,
                 "safe_filename": safe_filename,
@@ -116,7 +116,7 @@ class PaperService:
                 await self._update_status(paper_id, "completed", workflow)
             else:
                 await self._update_status(
-                    paper_id, "failed", workflow, result.get("error")
+                    paper_id, "failed", workflow, result.get("error") or ""
                 )
 
             # 创建任务记录
@@ -413,7 +413,7 @@ class PaperService:
             return paper_id.split("_")[0]
         return "general"
 
-    async def _save_metadata(self, paper_id: str, metadata: dict[str, Any]):
+    async def _save_metadata(self, paper_id: str, metadata: dict[str, Any]) -> None:
         """保存元数据."""
         metadata_dir = self.papers_dir / ".metadata"
         metadata_dir.mkdir(exist_ok=True)
@@ -437,14 +437,14 @@ class PaperService:
         with open(metadata_file, encoding="utf-8") as f:
             return json.load(f)
 
-    async def _update_metadata(self, paper_id: str, updates: dict[str, Any]):
+    async def _update_metadata(self, paper_id: str, updates: dict[str, Any]) -> None:
         """更新元数据."""
         metadata = await self._get_metadata(paper_id) or {}
         metadata.update(updates)
         metadata["updated_at"] = datetime.now().isoformat()
         await self._save_metadata(paper_id, metadata)
 
-    async def _delete_metadata(self, paper_id: str):
+    async def _delete_metadata(self, paper_id: str) -> None:
         """删除元数据."""
         metadata_dir = self.papers_dir / ".metadata"
         metadata_file = metadata_dir / f"{paper_id}.json"
@@ -453,8 +453,12 @@ class PaperService:
             metadata_file.unlink()
 
     async def _update_status(
-        self, paper_id: str, status: str, workflow: str = None, error: str = None
-    ):
+        self,
+        paper_id: str,
+        status: str,
+        workflow: str | None = None,
+        error: str | None = None,
+    ) -> None:
         """更新状态."""
         updates = {"status": status}
         if workflow:
@@ -472,7 +476,7 @@ class PaperService:
 
     async def _create_task_record(
         self, paper_id: str, task_id: str, workflow: str, result: dict[str, Any]
-    ):
+    ) -> None:
         """创建任务记录."""
         # 这里可以实现任务记录保存逻辑
         # 例如保存到数据库或文件

@@ -24,7 +24,9 @@ class WorkflowAgent(BaseAgent):
             config: 配置参数
         """
         super().__init__("workflow", config)
-        self.papers_dir = Path(config.get("papers_dir", "papers"))
+        self.papers_dir = Path(
+            config.get("papers_dir", "papers") if config else "papers"
+        )
         self.pdf_agent = PDFProcessingAgent(config)
         self.translation_agent = TranslationAgent(config)
         self.heartfelt_agent = HeartfeltAgent(config)
@@ -245,7 +247,7 @@ class WorkflowAgent(BaseAgent):
         extract_data: dict[str, Any],
         translate_data: dict[str, Any] | None,
         paper_id: str | None = None,
-    ):
+    ) -> None:
         """异步进行深度分析.
 
         Args:
@@ -277,7 +279,7 @@ class WorkflowAgent(BaseAgent):
         paper_id: str,
         extract_result: dict[str, Any],
         translate_result: dict[str, Any],
-    ):
+    ) -> None:
         """保存工作流结果.
 
         Args:
@@ -296,7 +298,7 @@ class WorkflowAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error saving workflow results: {str(e)}")
 
-    async def _save_extract_result(self, paper_id: str, data: dict[str, Any]):
+    async def _save_extract_result(self, paper_id: str, data: dict[str, Any]) -> None:
         """保存提取结果.
 
         Args:
@@ -321,7 +323,7 @@ class WorkflowAgent(BaseAgent):
 
         logger.info(f"Extract result saved to {output_file}")
 
-    async def _save_translate_result(self, paper_id: str, data: dict[str, Any]):
+    async def _save_translate_result(self, paper_id: str, data: dict[str, Any]) -> None:
         """保存翻译结果.
 
         Args:
@@ -332,7 +334,7 @@ class WorkflowAgent(BaseAgent):
         # 实际实现中可能需要区分源文件和翻译文件
         logger.info(f"Translate result saved for {paper_id}")
 
-    async def _save_heartfelt_result(self, paper_id: str, data: dict[str, Any]):
+    async def _save_heartfelt_result(self, paper_id: str, data: dict[str, Any]) -> None:
         """保存深度分析结果.
 
         Args:
