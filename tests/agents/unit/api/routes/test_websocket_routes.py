@@ -216,3 +216,15 @@ class TestWebSocketRoutes:
 
         assert manager is not None
         assert isinstance(manager, ConnectionManager)
+
+    def test_router_exists(self):
+        """Test that router exists."""
+        from agents.api.routes.websocket import router
+
+        assert router is not None
+
+    def test_websocket_endpoint_exists(self):
+        """Test that websocket endpoint function exists."""
+        from agents.api.routes.websocket import websocket_endpoint
+
+        assert callable(websocket_endpoint)
