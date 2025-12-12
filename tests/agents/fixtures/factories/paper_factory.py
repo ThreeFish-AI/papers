@@ -1,16 +1,17 @@
 """Factory for generating test data for papers."""
 
+import uuid
+from datetime import datetime
+
 import factory
 from factory import fuzzy
-from datetime import datetime
-import uuid
 
 from agents.api.models.paper import (
-    PaperUploadResponse,
-    PaperProcessRequest,
-    PaperStatus,
     PaperInfo,
     PaperMetadata,
+    PaperProcessRequest,
+    PaperStatus,
+    PaperUploadResponse,
 )
 
 

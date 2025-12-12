@@ -1,10 +1,10 @@
 """Mock configurations for WebSocket operations."""
 
-from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, Any, List, Optional, Callable
-import json
 import asyncio
+import json
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 
 class MockWebSocket:
@@ -31,7 +31,7 @@ class MockWebSocket:
             {"type": "text", "data": data, "timestamp": datetime.now().isoformat()}
         )
 
-    async def send_json(self, data: Dict[str, Any]):
+    async def send_json(self, data: dict[str, Any]):
         """Mock sending JSON data."""
         await self.send_text(json.dumps(data))
 
@@ -46,7 +46,7 @@ class MockWebSocket:
         await asyncio.sleep(0.1)
         return ""
 
-    async def receive_json(self) -> Dict[str, Any]:
+    async def receive_json(self) -> dict[str, Any]:
         """Mock receiving JSON data."""
         text = await self.receive_text()
         return json.loads(text) if text else {}
@@ -57,11 +57,11 @@ class MockWebSocket:
         self.close_code = code
         self.close_reason = reason
 
-    def add_received_message(self, message: Dict[str, Any]):
+    def add_received_message(self, message: dict[str, Any]):
         """Add a message to be received."""
         self.received_messages.append(message)
 
-    def get_sent_messages(self) -> List[Dict[str, Any]]:
+    def get_sent_messages(self) -> list[dict[str, Any]]:
         """Get all sent messages."""
         return self.sent_messages
 
@@ -75,8 +75,8 @@ class MockConnectionManager:
     """Mock WebSocket connection manager."""
 
     def __init__(self):
-        self.connections: Dict[str, MockWebSocket] = {}
-        self.task_subscribers: Dict[str, List[str]] = {}
+        self.connections: dict[str, MockWebSocket] = {}
+        self.task_subscribers: dict[str, list[str]] = {}
         self.broadcast_messages = []
 
     async def connect(self, websocket: MockWebSocket, client_id: str):
@@ -95,12 +95,12 @@ class MockConnectionManager:
                     if not self.task_subscribers[task_id]:
                         del self.task_subscribers[task_id]
 
-    async def send_personal_message(self, message: Dict[str, Any], client_id: str):
+    async def send_personal_message(self, message: dict[str, Any], client_id: str):
         """Mock sending personal message."""
         if client_id in self.connections:
             await self.connections[client_id].send_json(message)
 
-    async def broadcast(self, message: Dict[str, Any]):
+    async def broadcast(self, message: dict[str, Any]):
         """Mock broadcasting message to all connections."""
         self.broadcast_messages.append(message)
         for websocket in self.connections.values():
@@ -130,7 +130,7 @@ class MockConnectionManager:
         if client_id in self.connections:
             self.connections[client_id].subscribed_tasks.discard(task_id)
 
-    async def send_task_update(self, task_id: str, update: Dict[str, Any]):
+    async def send_task_update(self, task_id: str, update: dict[str, Any]):
         """Mock sending task update to subscribers."""
         if task_id in self.task_subscribers:
             message = {
@@ -142,11 +142,11 @@ class MockConnectionManager:
             for client_id in self.task_subscribers[task_id]:
                 await self.send_personal_message(message, client_id)
 
-    def get_connected_clients(self) -> List[str]:
+    def get_connected_clients(self) -> list[str]:
         """Get list of connected client IDs."""
         return list(self.connections.keys())
 
-    def get_task_subscribers(self, task_id: str) -> List[str]:
+    def get_task_subscribers(self, task_id: str) -> list[str]:
         """Get list of subscribers for a task."""
         return self.task_subscribers.get(task_id, [])
 
@@ -178,7 +178,7 @@ class MockWebSocketService:
         finally:
             self.connection_manager.disconnect(client_id)
 
-    async def handle_message(self, client_id: str, message: Dict[str, Any]):
+    async def handle_message(self, client_id: str, message: dict[str, Any]):
         """Mock handling incoming WebSocket message."""
         message_type = message.get("type")
 
@@ -218,7 +218,7 @@ class MockWebSocketService:
             if message:
                 self.active_tasks[task_id]["message"] = message
 
-    async def notify_task_completion(self, task_id: str, result: Dict[str, Any] = None):
+    async def notify_task_completion(self, task_id: str, result: dict[str, Any] = None):
         """Mock notifying task completion."""
         update = {
             "status": "completed",
@@ -252,7 +252,7 @@ class MockWebSocketService:
             "created_at": datetime.now().isoformat(),
         }
 
-    def get_active_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_active_task(self, task_id: str) -> dict[str, Any] | None:
         """Get active task info."""
         return self.active_tasks.get(task_id)
 
@@ -302,7 +302,7 @@ def patch_websocket_service():
 
 
 # Test helpers
-async def simulate_task_progress(task_id: str, steps: List[tuple]):
+async def simulate_task_progress(task_id: str, steps: list[tuple]):
     """Simulate task progress for testing.
 
     Args:
@@ -316,7 +316,7 @@ async def simulate_task_progress(task_id: str, steps: List[tuple]):
     await mock_websocket_service.notify_task_completion(task_id, {"output": "success"})
 
 
-def create_websocket_test_message(message_type: str, **kwargs) -> Dict[str, Any]:
+def create_websocket_test_message(message_type: str, **kwargs) -> dict[str, Any]:
     """Create a WebSocket test message."""
     message = {"type": message_type, "timestamp": datetime.now().isoformat(), **kwargs}
     return message

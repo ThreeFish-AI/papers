@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Test runner script for the agentic-ai-papers project."""
 
+import os
 import subprocess
 import sys
-import os
 from pathlib import Path
 
 

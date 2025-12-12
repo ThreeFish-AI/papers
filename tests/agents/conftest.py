@@ -1,19 +1,17 @@
 """Pytest configuration and fixtures for backend testing."""
 
 import asyncio
-import json
+
+# Import the main application
+import sys
 import tempfile
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-
-# Import the main application
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 

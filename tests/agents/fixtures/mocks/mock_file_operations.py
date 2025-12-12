@@ -1,9 +1,8 @@
 """Mock configurations for file operations."""
 
-from unittest.mock import AsyncMock, MagicMock, mock_open
-from pathlib import Path
-from typing import Any, Dict, Optional
 import json
+from pathlib import Path
+from typing import Any
 
 
 class MockFileManager:
@@ -192,7 +191,7 @@ class MockAsyncFileManager:
 
     async def save_upload(
         self, filename: str, content: bytes, category: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Mock saving uploaded file."""
         file_id = f"{category}_{filename}"
         self.uploaded_files[file_id] = {
@@ -208,7 +207,7 @@ class MockAsyncFileManager:
             "message": "File uploaded successfully",
         }
 
-    async def get_file(self, file_id: str) -> Optional[Dict[str, Any]]:
+    async def get_file(self, file_id: str) -> dict[str, Any] | None:
         """Mock getting file info."""
         return self.uploaded_files.get(file_id)
 
@@ -231,7 +230,7 @@ class MockAsyncFileManager:
 
     async def save_processing_result(
         self, paper_id: str, filename: str, content: bytes
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Mock saving processing result."""
         if paper_id not in self.processing_files:
             await self.create_processing_dir(paper_id)
@@ -244,9 +243,7 @@ class MockAsyncFileManager:
             "success": True,
         }
 
-    async def get_processing_result(
-        self, paper_id: str, filename: str
-    ) -> Optional[bytes]:
+    async def get_processing_result(self, paper_id: str, filename: str) -> bytes | None:
         """Mock getting processing result."""
         if paper_id in self.processing_files:
             return self.processing_files[paper_id]["files"].get(filename)
