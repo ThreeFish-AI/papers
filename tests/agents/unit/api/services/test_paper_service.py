@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import UploadFile
 
-from agents.api.models.paper import PaperInfo
 from agents.api.services.paper_service import PaperService
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
