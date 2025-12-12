@@ -204,7 +204,6 @@ ruff check --fix .
 ruff format .
 ```
 
-
 ## Agent 开发指南
 
 ### 创建新 Agent
@@ -588,12 +587,8 @@ MCP 工具配置位于 `.claude/` 目录：
 ```yaml
 # .claude/claude_desktop_config.json
 {
-  "mcpServers": {
-    "data-extractor": {
-      "command": "mcp-data-extractor",
-      "args": []
-    }
-  }
+  "mcpServers":
+    { "data-extractor": { "command": "mcp-data-extractor", "args": [] } },
 }
 ```
 
@@ -811,15 +806,18 @@ twine upload dist/*
 ## 维护与监控
 
 ### 定期维护
+
 - 每日检查错误日志
 - 每周更新依赖包
 - 每月清理临时文件
 - 定期备份 `papers/` 目录
 
 ### 监控要点
+
 - API 响应时间
 - 错误率
 - 内存和磁盘使用
 
 ### 应急响应
+
 1. 监控告警 → 2. 定位问题 → 3. 实施修复 → 4. 复盘改进
