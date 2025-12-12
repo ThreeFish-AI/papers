@@ -36,7 +36,7 @@ class TestWorkflowAgent:
         agent._save_extract_result = AsyncMock()
         agent._save_translate_result = AsyncMock()
         agent._save_heartfelt_result = AsyncMock()
-        agent._async_heartfelt_analysis = AsyncMock()
+        # Note: Don't mock _async_heartfelt_analysis as we need to test the real method
 
         return agent
 
