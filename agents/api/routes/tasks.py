@@ -1,7 +1,6 @@
 """Task management routes."""
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
@@ -20,9 +19,9 @@ async def get_task_service() -> TaskService:
 
 @router.get("/", response_model=TaskListResponse)
 async def list_tasks(
-    status: Optional[str] = Query(None, description="按状态筛选"),
-    paper_id: Optional[str] = Query(None, description="按论文 ID 筛选"),
-    workflow: Optional[str] = Query(None, description="按工作流筛选"),
+    status: str | None = Query(None, description="按状态筛选"),
+    paper_id: str | None = Query(None, description="按论文 ID 筛选"),
+    workflow: str | None = Query(None, description="按工作流筛选"),
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
     service: TaskService = Depends(get_task_service),

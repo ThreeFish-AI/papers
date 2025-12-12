@@ -1,10 +1,10 @@
 """WebSocket routes for real-time updates."""
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
-from typing import Dict, Set
 import json
 import logging
 from datetime import datetime
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from agents.api.services.websocket_service import WebSocketService
 
@@ -15,9 +15,9 @@ router = APIRouter()
 # WebSocket 连接管理器
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.client_subscriptions: Dict[
-            str, Set[str]
+        self.active_connections: dict[str, WebSocket] = {}
+        self.client_subscriptions: dict[
+            str, set[str]
         ] = {}  # client_id -> set of task_ids
 
     async def connect(self, websocket: WebSocket, client_id: str):

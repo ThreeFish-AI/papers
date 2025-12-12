@@ -1,16 +1,15 @@
 """Papers management routes."""
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile
 
 from agents.api.models.paper import (
     BatchProcessRequest,
+    PaperListResponse,
     PaperProcessRequest,
     PaperStatus,
     PaperUploadResponse,
-    PaperListResponse,
 )
 from agents.api.services.paper_service import PaperService
 
@@ -121,8 +120,8 @@ async def get_paper_content(
 
 @router.get("/", response_model=PaperListResponse)
 async def list_papers(
-    category: Optional[str] = Query(None, description="按分类筛选"),
-    status: Optional[str] = Query(None, description="按状态筛选"),
+    category: str | None = Query(None, description="按分类筛选"),
+    status: str | None = Query(None, description="按状态筛选"),
     limit: int = Query(20, ge=1, le=100, description="返回数量限制"),
     offset: int = Query(0, ge=0, description="偏移量"),
     service: PaperService = Depends(get_paper_service),
