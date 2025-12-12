@@ -210,6 +210,85 @@ class TestWebSocketRoutes:
         await manager.unsubscribe("client1", "task1")
         assert "task1" not in manager.client_subscriptions["client1"]
 
+    @pytest.mark.asyncio
+    async def test_connection_manager_connect_disconnect(self):
+        """Test ConnectionManager connect and disconnect methods."""
+        manager = ConnectionManager()
+        mock_websocket = AsyncMock()
+
+        # Test connect
+        await manager.connect(mock_websocket, "client1")
+        assert "client1" in manager.active_connections
+        assert manager.active_connections["client1"] == mock_websocket
+        assert "client1" in manager.client_subscriptions
+
+        # Test disconnect
+        manager.disconnect("client1")
+        assert "client1" not in manager.active_connections
+        assert "client1" not in manager.client_subscriptions
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_send_personal_message(self):
+        """Test ConnectionManager send_personal_message method."""
+        manager = ConnectionManager()
+        mock_websocket = AsyncMock()
+        manager.active_connections["client1"] = mock_websocket
+
+        # Test successful send
+        message = {"type": "test", "data": "hello"}
+        await manager.send_personal_message(message, "client1")
+        mock_websocket.send_text.assert_called_once_with(
+            '{"type": "test", "data": "hello"}'
+        )
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_send_personal_message_error(self):
+        """Test ConnectionManager send_personal_message error handling."""
+        manager = ConnectionManager()
+        mock_websocket = AsyncMock()
+        mock_websocket.send_text.side_effect = Exception("Connection failed")
+        manager.active_connections["client1"] = mock_websocket
+
+        # Test error handling
+        message = {"type": "test", "data": "hello"}
+        await manager.send_personal_message(message, "client1")
+
+        # Client should be disconnected on error
+        assert "client1" not in manager.active_connections
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_broadcast_to_subscribers(self):
+        """Test ConnectionManager broadcast_to_subscribers method."""
+        manager = ConnectionManager()
+        mock_websocket1 = AsyncMock()
+        mock_websocket2 = AsyncMock()
+
+        manager.active_connections["client1"] = mock_websocket1
+        manager.active_connections["client2"] = mock_websocket2
+        manager.client_subscriptions["client1"] = {"task1", "task2"}
+        manager.client_subscriptions["client2"] = {"task2"}
+
+        message = {"type": "update", "data": "test"}
+        await manager.broadcast_to_subscribers(message, "task2")
+
+        # Only client1 and client2 are subscribed to task2
+        mock_websocket1.send_text.assert_called_once()
+        mock_websocket2.send_text.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_broadcast_empty_subscribers(self):
+        """Test broadcast with no subscribers."""
+        manager = ConnectionManager()
+        mock_websocket = AsyncMock()
+        manager.active_connections["client1"] = mock_websocket
+        manager.client_subscriptions["client1"] = set()
+
+        message = {"type": "update", "data": "test"}
+        await manager.broadcast_to_subscribers(message, "task1")
+
+        # Should not send any messages
+        mock_websocket.send_text.assert_not_called()
+
     def test_manager_instance(self):
         """Test that manager instance exists."""
         from agents.api.routes.websocket import manager

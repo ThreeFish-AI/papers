@@ -115,58 +115,57 @@ class TestPDFProcessingAgent:
             assert result["success"] is False
             assert "File not found" in result["error"]
 
-    # @pytest.mark.asyncio
-    # async def test_extract_content_success(self, pdf_agent, temp_dir):
-    #     """Test successful content extraction."""
-    #     # Create a mock PDF file
-    #     pdf_file = temp_dir / "test.pdf"
-    #     pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
+    @pytest.mark.asyncio
+    async def test_extract_content_success(self, pdf_agent, temp_dir):
+        """Test successful content extraction."""
+        # Create a mock PDF file
+        pdf_file = temp_dir / "test.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
 
-    #     params = {
-    #         "file_path": str(pdf_file),
-    #         "options": {
-    #             "extract_images": True,
-    #             "extract_tables": True,
-    #             "extract_formulas": True,
-    #             "output_format": "markdown"
-    #         }
-    #     }
+        params = {
+            "file_path": str(pdf_file),
+            "options": {
+                "extract_images": True,
+                "extract_tables": True,
+                "extract_formulas": True,
+                "output_format": "markdown",
+            },
+        }
 
-    #     # Mock the pdf-reader skill
-    #     with patch.object(pdf_agent, 'call_skill') as mock_call_skill:
-    #         mock_call_skill.return_value = {
-    #             "success": True,
-    #             "data": {
-    #                 "content": "# Extracted Content\n\nThis is the PDF content.",
-    #                 "metadata": {
-    #                     "title": "Test PDF",
-    #                     "author": "Test Author",
-    #                     "pages": 10,
-    #                     "word_count": 500
-    #                 },
-    #                 "images": [],
-    #                 "tables": [],
-    #                 "formulas": []
-    #             }
-    #         }
+        # Mock the pdf-reader skill
+        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
+            mock_call_skill.return_value = {
+                "success": True,
+                "data": {
+                    "markdown": "# Extracted Content\n\nThis is the PDF content.",
+                    "metadata": {"title": "Test PDF", "author": "Test Author"},
+                    "page_count": 10,
+                    "images": [],
+                    "tables": [],
+                    "formulas": [],
+                },
+            }
 
-    #         result = await pdf_agent.extract_content(params)
+            result = await pdf_agent.extract_content(params)
 
-    #         assert result["success"] is True
-    #         assert "content" in result["data"]
-    #         assert "metadata" in result["data"]
-    #         assert result["data"]["metadata"]["pages"] == 10
+            assert result["success"] is True
+            assert "content" in result["data"]
+            assert "metadata" in result["data"]
+            assert result["data"]["metadata"]["page_count"] == 10
 
-    #         mock_call_skill.assert_called_once_with("pdf-reader", {
-    #             "pdf_source": str(pdf_file),
-    #             "method": "auto",
-    #             "include_metadata": True,
-    #             "extract_images": True,
-    #             "extract_tables": True,
-    #             "extract_formulas": True,
-    #             "output_format": "markdown",
-    #             "page_range": None
-    #         })
+            mock_call_skill.assert_called_once_with(
+                "pdf-reader",
+                {
+                    "pdf_source": str(pdf_file),
+                    "method": "auto",
+                    "include_metadata": True,
+                    "extract_images": True,
+                    "extract_tables": True,
+                    "extract_formulas": True,
+                    "output_format": "markdown",
+                    "page_range": None,
+                },
+            )
 
     @pytest.mark.asyncio
     async def test_extract_content_skill_failure(self, pdf_agent, temp_dir):
@@ -216,6 +215,54 @@ class TestPDFProcessingAgent:
             assert call_args["extract_tables"] is True  # Default
             assert call_args["extract_formulas"] is True  # Default
             assert call_args["output_format"] == "markdown"  # Default
+
+    @pytest.mark.asyncio
+    async def test_extract_content_with_embed_images(self, pdf_agent, temp_dir):
+        """Test content extraction with embed_images option."""
+        # Create a mock PDF file
+        pdf_file = temp_dir / "test.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
+
+        params = {
+            "file_path": str(pdf_file),
+            "options": {
+                "embed_images": True,
+                "embed_options": {"max_bytes_per_image": 100000},
+            },
+        }
+
+        # Mock the data extractor skill
+        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
+            mock_call_skill.return_value = {"success": True, "data": {}}
+
+            await pdf_agent.extract_content(params)
+
+            # Check that embed_images parameters were included
+            call_args = mock_call_skill.call_args[0][1]
+            assert call_args["embed_images"] is True
+            assert call_args["embed_options"] == {"max_bytes_per_image": 100000}
+
+    @pytest.mark.asyncio
+    async def test_extract_content_with_page_range(self, pdf_agent, temp_dir):
+        """Test content extraction with page range."""
+        # Create a mock PDF file
+        pdf_file = temp_dir / "test.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
+
+        params = {
+            "file_path": str(pdf_file),
+            "options": {"page_range": [1, 5]},
+        }
+
+        # Mock the data extractor skill
+        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
+            mock_call_skill.return_value = {"success": True, "data": {}}
+
+            await pdf_agent.extract_content(params)
+
+            # Check that page_range was included
+            call_args = mock_call_skill.call_args[0][1]
+            assert call_args["page_range"] == [1, 5]
 
     @pytest.mark.asyncio
     async def test_validate_input(self, pdf_agent):
@@ -318,3 +365,171 @@ class TestPDFProcessingAgent:
         assert options["extract_tables"] is True
         assert options["extract_formulas"] is True
         assert options["output_format"] == "markdown"
+
+    @pytest.mark.asyncio
+    async def test_batch_extract_content(self, pdf_agent, temp_dir):
+        """Test batch content extraction via batch_call_skill method."""
+        calls = [
+            {"skill": "pdf-reader", "params": {"pdf_source": "file1.pdf"}},
+            {"skill": "pdf-reader", "params": {"pdf_source": "file2.pdf"}},
+        ]
+
+        # Mock the skill calls
+        pdf_agent.call_skill = AsyncMock(
+            side_effect=[
+                {"success": True, "data": {"content": "content1", "metadata": {}}},
+                {"success": True, "data": {"content": "content2", "metadata": {}}},
+            ]
+        )
+
+        results = await pdf_agent.batch_call_skill(calls)
+
+        assert len(results) == 2
+        assert results[0]["success"] is True
+        assert results[1]["success"] is True
+        assert results[0]["data"]["content"] == "content1"
+        assert results[1]["data"]["content"] == "content2"
+
+    def test_extract_metadata(self, pdf_agent, temp_dir):
+        """Test metadata extraction."""
+        # Create a mock PDF file
+        pdf_file = temp_dir / "test.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
+
+        data = {
+            "metadata": {
+                "title": "Test PDF",
+                "author": "Test Author",
+                "creator": "Test Creator",
+                "producer": "Test Producer",
+                "creation_date": "2024-01-01",
+                "modification_date": "2024-01-02",
+            },
+            "content": "This is test content with some words.",
+            "page_count": 10,
+            "images": [{"id": 1}, {"id": 2}],
+            "tables": [{"id": 1}],
+            "formulas": [{"id": 1}, {"id": 2}, {"id": 3}],
+        }
+
+        metadata = pdf_agent._extract_metadata(data, str(pdf_file))
+
+        assert metadata["file_name"] == "test.pdf"
+        assert metadata["file_path"] == str(pdf_file)
+        assert metadata["title"] == "Test PDF"
+        assert metadata["author"] == "Test Author"
+        assert metadata["creator"] == "Test Creator"
+        assert metadata["producer"] == "Test Producer"
+        assert metadata["creation_date"] == "2024-01-01"
+        assert metadata["modification_date"] == "2024-01-02"
+        assert metadata["page_count"] == 10
+        assert metadata["word_count"] == 7  # Count of words in content
+        assert metadata["image_count"] == 2
+        assert metadata["table_count"] == 1
+        assert metadata["formula_count"] == 3
+
+    def test_extract_metadata_without_pdf_metadata(self, pdf_agent, temp_dir):
+        """Test metadata extraction without PDF metadata."""
+        pdf_file = temp_dir / "test.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
+
+        data = {"content": "Test content", "page_count": 5}
+
+        metadata = pdf_agent._extract_metadata(data, str(pdf_file))
+
+        assert metadata["file_name"] == "test.pdf"
+        assert metadata.get("title", "") == ""
+        assert metadata.get("author", "") == ""
+        assert metadata["page_count"] == 5
+        assert metadata["word_count"] == 2
+
+    def test_process_images(self, pdf_agent):
+        """Test image processing."""
+        pdf_path = "/path/to/test.pdf"
+        paper_id = "category_test_paper"
+
+        images = [
+            {
+                "index": 0,
+                "page": 1,
+                "caption": "Test image",
+                "format": "png",
+                "size": [100, 100],
+            },
+            {
+                "index": 1,
+                "page": 2,
+                "caption": "Another image",
+                "format": "jpg",
+                "size": [200, 150],
+                "data": "base64data",
+            },
+        ]
+
+        processed = pdf_agent._process_images(images, pdf_path, paper_id)
+
+        assert len(processed) == 2
+
+        # First image (no embedded data)
+        assert processed[0]["index"] == 0
+        assert processed[0]["page"] == 1
+        assert processed[0]["caption"] == "Test image"
+        assert processed[0]["format"] == "png"
+        assert processed[0]["size"] == [100, 100]
+        assert processed[0]["embedded"] is False
+        assert "path" in processed[0]
+        assert "filename" in processed[0]
+        assert "category" in processed[0]["path"]
+
+        # Second image (with embedded data)
+        assert processed[1]["index"] == 1
+        assert processed[1]["embedded"] is True
+        assert processed[1]["data"] == "base64data"
+        assert "path" not in processed[1]
+
+    def test_process_images_without_paper_id(self, pdf_agent):
+        """Test image processing without paper ID."""
+        pdf_path = "/path/to/test.pdf"
+        images = [{"index": 0, "page": 1}]
+
+        processed = pdf_agent._process_images(images, pdf_path)
+
+        assert processed[0]["embedded"] is False
+        assert "general" in processed[0]["path"]  # Should use "general" category
+
+    def test_count_words(self, pdf_agent):
+        """Test word counting."""
+        assert pdf_agent._count_words("") == 0
+        assert pdf_agent._count_words(None) == 0
+        assert pdf_agent._count_words("word") == 1
+        assert pdf_agent._count_words("word1 word2 word3") == 3
+        assert pdf_agent._count_words("This is a test sentence.") == 5
+        assert pdf_agent._count_words("  multiple   spaces  between  words  ") == 4
+
+    @pytest.mark.asyncio
+    async def test_validate_pdf(self, pdf_agent, temp_dir):
+        """Test PDF validation."""
+        # Test non-existent file
+        result = await pdf_agent.validate_pdf("/nonexistent.pdf")
+        assert result["valid"] is False
+        assert "File does not exist" in result["error"]
+
+        # Test non-PDF file
+        txt_file = temp_dir / "test.txt"
+        txt_file.write_text("not a pdf")
+        result = await pdf_agent.validate_pdf(str(txt_file))
+        assert result["valid"] is False
+        assert "Not a PDF file" in result["error"]
+
+        # Test empty PDF file
+        empty_pdf = temp_dir / "empty.pdf"
+        empty_pdf.write_bytes(b"")
+        result = await pdf_agent.validate_pdf(str(empty_pdf))
+        assert result["valid"] is False
+        assert "Empty file" in result["error"]
+
+        # Test valid PDF file
+        valid_pdf = temp_dir / "valid.pdf"
+        valid_pdf.write_bytes(b"%PDF-1.4\nmock pdf content")
+        result = await pdf_agent.validate_pdf(str(valid_pdf))
+        assert result["valid"] is True
