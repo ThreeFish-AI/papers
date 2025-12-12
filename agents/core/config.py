@@ -13,7 +13,7 @@ load_dotenv()
 class Settings:
     """应用设置."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化设置，从环境变量读取配置."""
         # 基本设置
         self.DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
@@ -36,7 +36,7 @@ class Settings:
         # 基本配置属性，其他配置会动态使用这些值
         self._init_configs()
 
-    def _init_configs(self):
+    def _init_configs(self) -> None:
         """初始化配置字典."""
         # Agent 设置
         self.WORKFLOW_CONFIG: dict[str, Any] = {
