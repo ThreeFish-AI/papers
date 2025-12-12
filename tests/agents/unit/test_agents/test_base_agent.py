@@ -1,6 +1,6 @@
 """Unit tests for BaseAgent."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -101,7 +101,7 @@ class TestBaseAgent:
         agent = TestAgent("test_agent")
 
         # Mock the skill import and execution
-        with patch("agents.claude.base.logger") as mock_logger:
+        with patch("agents.claude.base.logger"):
             result = await agent.call_skill("test_skill", {"param": "value"})
 
             assert result["success"] is False
@@ -117,7 +117,7 @@ class TestBaseAgent:
 
         agent = TestAgent("test_agent")
 
-        with patch("agents.claude.base.logger") as mock_logger:
+        with patch("agents.claude.base.logger"):
             result = await agent.call_skill("invalid_skill", {})
 
             assert result["success"] is False

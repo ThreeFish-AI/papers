@@ -1,7 +1,5 @@
 """Unit tests for TaskService - simplified version."""
 
-from datetime import datetime, timedelta
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -145,7 +143,7 @@ class TestTaskService:
         # Create tasks
         task_id1 = await task_service.create_task("paper1", "full")
         task_id2 = await task_service.create_task("paper2", "full")
-        task_id3 = await task_service.create_task("paper3", "full")
+        await task_service.create_task("paper3", "full")
 
         # Update statuses
         await task_service.update_task(task_id1, status="completed")
