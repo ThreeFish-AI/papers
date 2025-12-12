@@ -1,13 +1,14 @@
 """Utility functions."""
 
+import asyncio
+import hashlib
+import logging
 import os
 import re
-import hashlib
 import uuid
-from typing import Any, Dict, List, Optional
 from datetime import datetime
 from pathlib import Path
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ def extract_text_summary(text: str, max_length: int = 200) -> str:
     return summary
 
 
-def validate_pdf_file(file_path: str) -> Dict[str, Any]:
+def validate_pdf_file(file_path: str) -> dict[str, Any]:
     """验证 PDF 文件.
 
     Args:
@@ -234,7 +235,7 @@ def get_task_status_color(status: str) -> str:
     return color_map.get(status, "#6c757d")
 
 
-def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
+def merge_dicts(*dicts: dict[str, Any]) -> dict[str, Any]:
     """合并多个字典.
 
     Args:
@@ -251,8 +252,8 @@ def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def flatten_dict(
-    d: Dict[str, Any], parent_key: str = "", sep: str = "."
-) -> Dict[str, Any]:
+    d: dict[str, Any], parent_key: str = "", sep: str = "."
+) -> dict[str, Any]:
     """扁平化字典.
 
     Args:
