@@ -5,6 +5,11 @@ on:
     branches:
       - "**" # 所有分支
 
+# Workflow-level permissions
+permissions:
+  contents: write
+  pull-requests: write
+
 # Environment variables
 env:
   PYTHON_VERSION: "3.12"
