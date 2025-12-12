@@ -85,9 +85,7 @@ async def process_paper(
     - **workflow**: Workflow type
     """
     try:
-        result = await service.process_paper(
-            paper_id, request.workflow, options=request.options
-        )
+        result = await service.process_paper(paper_id, request.workflow)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -188,8 +186,8 @@ async def delete_paper(
     - **paper_id**: Paper ID
     """
     try:
-        result = await service.delete_paper(paper_id)
-        return result
+        success = await service.delete_paper(paper_id)
+        return {"success": success, "paper_id": paper_id}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
