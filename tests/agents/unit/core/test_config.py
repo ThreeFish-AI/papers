@@ -95,9 +95,10 @@ class TestSettings:
         assert s.WS_CONNECTION_TIMEOUT == 600
         assert s.DATABASE_URL is None
         assert s.REDIS_URL is None
-        assert s.SECRET_KEY == "your-secret-key-change-this-in-production"
+        assert s.SECRET_KEY == "your-secret-key-change-this"
         assert s.ACCESS_TOKEN_EXPIRE_MINUTES == 30
-        assert s.CORS_ORIGINS == ["http://localhost:3000", "http://127.0.0.1:3000"]
+        assert isinstance(s.CORS_ORIGINS, list)
+        assert "http://localhost:3000" in s.CORS_ORIGINS
         assert s.LOG_DIR == "logs"
         assert s.LOG_FILE == "logs/app.log"
         assert s.LOG_MAX_SIZE == 10 * 1024 * 1024

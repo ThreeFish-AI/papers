@@ -135,7 +135,7 @@ class TranslationAgent(BaseAgent):
                 "success": True,
                 "data": {
                     "content": result["data"],
-                    "word_count": len(result["data"].split()),
+                    "word_count": len(params["content"].split()),
                     "batch_count": 1,
                 },
             }

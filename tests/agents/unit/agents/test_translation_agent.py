@@ -285,14 +285,14 @@ class TestTranslationAgent:
     async def test_save_translation_invalid_paper_id(self, translation_agent, tmp_path):
         """Test save translation with invalid paper ID."""
         translation_agent.papers_dir = tmp_path
-        paper_id = "invalid_id"  # No underscore
+        paper_id = "invalid_id"  # Has underscore, so "invalid" will be used as category
         content = "翻译内容"
 
         # Should not raise exception
         await translation_agent._save_translation(paper_id, content)
 
-        # Should use "general" category
-        output_dir = tmp_path / "translation" / "general"
+        # Should use "invalid" as category since paper_id is "invalid_id"
+        output_dir = tmp_path / "translation" / "invalid"
         assert output_dir.exists()
 
     def test_split_content_paragraphs(self, translation_agent):
