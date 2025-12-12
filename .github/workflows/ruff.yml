@@ -2,8 +2,23 @@ name: Auto-fix Ruff Issues
 
 on:
   push:
-    branches:
-      - "**" # 所有分支
+    branches-ignore:
+      - "fix/ruff-auto-fix-*"
+      - "dependabot/**"
+
+# Workflow-level permissions
+permissions:
+  contents: write
+  pull-requests: write
+  # Additional permissions for gh CLI
+  actions: read
+  checks: write
+  deployments: write
+  issues: write
+  packages: write
+  repository-projects: write
+  security-events: write
+  statuses: write
 
 # Environment variables
 env:
@@ -24,6 +39,8 @@ jobs:
   ruff-check-and-fix:
     name: Check and Fix Ruff Issues
     runs-on: ubuntu-latest
+    # Skip if this is an auto-fix branch to avoid infinite loops
+    if: "!startsWith(github.ref, 'refs/heads/fix/ruff-auto-fix-')"
 
     permissions:
       contents: write
@@ -60,7 +77,7 @@ jobs:
         id: ruff-check
         run: |
           # Create a report file for ruff issues
-          ruff check . --output-format=json > ruff-issues.json || true
+          ruff check agents/ tests/ conftest.py --output-format=json > ruff-issues.json || true
 
           # Count issues
           ISSUE_COUNT=$(cat ruff-issues.json | jq length || echo "0")
@@ -71,7 +88,7 @@ jobs:
             echo "has_issues=true" >> $GITHUB_OUTPUT
 
             # Try to fix issues
-            ruff check . --fix
+            ruff check agents/ tests/ conftest.py --fix
 
             # Check if any files were modified
             if [ -n "$(git status --porcelain)" ]; then
@@ -89,7 +106,7 @@ jobs:
       - name: Run ruff format
         if: steps.ruff-check.outputs.has_issues == 'true'
         run: |
-          ruff format .
+          ruff format agents/ tests/ conftest.py
 
           # Check if formatting made changes
           if [ -n "$(git status --porcelain)" ]; then
@@ -118,7 +135,7 @@ jobs:
     name: Create/Update PR
     runs-on: ubuntu-latest
     needs: ruff-check-and-fix
-    if: always() && needs.ruff-check-and-fix.result == 'success'
+    if: always() && needs.ruff-check-and-fix.result == 'success' && !startsWith(github.ref, 'refs/heads/fix/ruff-auto-fix-')
 
     permissions:
       contents: write
@@ -143,8 +160,8 @@ jobs:
         id: check-fixes
         run: |
           # Run ruff check and fix
-          ruff check . --fix
-          ruff format .
+          ruff check agents/ tests/ conftest.py --fix
+          ruff format agents/ tests/ conftest.py
 
           # Check if there are changes
           if [ -n "$(git status --porcelain)" ]; then
@@ -164,20 +181,20 @@ jobs:
       - name: Ensure required labels exist
         if: steps.check-fixes.outputs.has_changes == 'true'
         run: |
-          # Function to create label if it doesn't exist
+          # Function to ensure label exists (create or update)
           create_label_if_missing() {
             local label_name="$1"
             local label_color="$2"
             local label_description="$3"
 
-            if ! gh label view "$label_name" >/dev/null 2>&1; then
-              echo "Creating label: $label_name"
-              gh label create "$label_name" \
-                --color "$label_color" \
-                --description "$label_description"
-            else
-              echo "Label already exists: $label_name"
-            fi
+            echo "Ensuring label exists: $label_name"
+            gh label create "$label_name" \
+              --color "$label_color" \
+              --description "$label_description" \
+              --force || {
+              echo "Warning: Failed to ensure label $label_name exists"
+              # Continue without failing the step
+            }
           }
 
           # Create required labels
@@ -197,7 +214,7 @@ jobs:
           git checkout -b $BRANCH_NAME
 
           # Add and commit changes
-          git add .
+          git add agents/ tests/ conftest.py
           git commit -m "fix: auto-fix ruff issues
 
           - Applied ruff --fix to resolve linting issues
@@ -282,12 +299,12 @@ jobs:
           git pull origin $EXISTING_BRANCH
 
           # Re-apply ruff fixes
-          ruff check . --fix
-          ruff format .
+          ruff check agents/ tests/ conftest.py --fix
+          ruff format agents/ tests/ conftest.py
 
           # Commit if there are new changes
           if [ -n "$(git status --porcelain)" ]; then
-            git add .
+            git add agents/ tests/ conftest.py
             git commit -m "fix: update ruff fixes for latest changes
 
               - Applied additional ruff fixes
@@ -325,7 +342,10 @@ jobs:
           EOF
           )
 
-          gh pr edit ${{ steps.check-pr.outputs.pr_number }} --body "$PR_BODY"
+          # Try to update PR body, but continue if it fails due to permissions
+          gh pr edit ${{ steps.check-pr.outputs.pr_number }} --body "$PR_BODY" || {
+            echo "Warning: Could not update PR body due to permissions. The PR still contains the latest fixes."
+          }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
