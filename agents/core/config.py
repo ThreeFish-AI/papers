@@ -1,8 +1,9 @@
 """Application configuration."""
 
 import os
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Any
+
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -29,13 +30,13 @@ class Settings:
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 
     # Agent 设置
-    WORKFLOW_CONFIG: Dict[str, Any] = {
+    WORKFLOW_CONFIG: dict[str, Any] = {
         "papers_dir": PAPERS_DIR,
         "batch_size": int(os.getenv("BATCH_SIZE", "10")),
         "parallel_tasks": int(os.getenv("PARALLEL_TASKS", "3")),
     }
 
-    PDF_CONFIG: Dict[str, Any] = {
+    PDF_CONFIG: dict[str, Any] = {
         "papers_dir": PAPERS_DIR,
         "extract_images": os.getenv("EXTRACT_IMAGES", "true").lower() == "true",
         "extract_tables": os.getenv("EXTRACT_TABLES", "true").lower() == "true",
@@ -43,7 +44,7 @@ class Settings:
     }
 
     # 翻译设置
-    TRANSLATION_CONFIG: Dict[str, Any] = {
+    TRANSLATION_CONFIG: dict[str, Any] = {
         "target_language": os.getenv("TARGET_LANGUAGE", "zh"),
         "preserve_format": os.getenv("PRESERVE_FORMAT", "true").lower() == "true",
         "batch_size": int(os.getenv("TRANSLATION_BATCH_SIZE", "5000")),
@@ -54,10 +55,10 @@ class Settings:
     WS_CONNECTION_TIMEOUT: int = int(os.getenv("WS_CONNECTION_TIMEOUT", "600"))
 
     # 数据库设置（保留但暂不使用）
-    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL")
+    DATABASE_URL: str | None = os.getenv("DATABASE_URL")
 
     # Redis 设置（保留但暂不使用）
-    REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
+    REDIS_URL: str | None = os.getenv("REDIS_URL")
 
     # 安全设置
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-this")
