@@ -182,7 +182,7 @@ class MockFileManager:
             # If we can't convert to string, there's a serious problem
             raise FileNotFoundError(
                 f"Cannot extract path from object: {self}, error: {e}"
-            )
+            ) from e
 
         if path_str in mock_file_manager.files:
             del mock_file_manager.files[path_str]
