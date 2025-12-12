@@ -65,3 +65,9 @@ bandit-report.json
 .mcp.json
 .gitignore
 .vscode/settings.json
+
+# Papers - test generated files and metadata
+papers/.metadata/
+papers/source/**/*_test*.pdf
+papers/source/**/test_*.pdf
+papers/source/**/*_20[0-9][0-9]_[0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].pdf
