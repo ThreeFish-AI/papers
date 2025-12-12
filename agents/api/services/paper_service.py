@@ -580,7 +580,7 @@ class PaperService:
 
     async def _list_all_metadata(self) -> list[dict[str, Any]]:
         """列出所有元数据文件."""
-        metadata_list = []
+        metadata_list: list[dict[str, Any]] = []
         metadata_dir = self.papers_dir / ".metadata"
 
         if not metadata_dir.exists():
@@ -698,7 +698,7 @@ class PaperService:
 
         try:
             # 启动深度分析工作流
-            result = await self.heartfelt_agent.analyze(paper_id)
+            result = await self.heartfelt_agent.analyze({"paper_id": paper_id})
 
             if result.get("success", False):
                 await self._update_status(paper_id, "completed", "heartfelt")
@@ -746,7 +746,9 @@ class PaperService:
             raise ValueError("No valid paper files found")
 
         # 启动批量翻译
-        result = await self.batch_agent.batch_translate(valid_paper_ids)
+        result = await self.batch_agent.batch_process(
+            {"files": valid_paper_ids, "workflow": "translation", "options": {}}
+        )
 
         return {
             "batch_id": f"batch_translate_{datetime.now().strftime('%Y%m%d%H%M%S')}",
