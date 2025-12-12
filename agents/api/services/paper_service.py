@@ -97,7 +97,7 @@ class PaperService:
         """
         source_path = self._get_source_path(paper_id)
         if not source_path.exists():
-            raise ValueError(f"论文不存在: {paper_id}")
+            raise ValueError(f"Paper not found: {paper_id}")
 
         # 更新状态
         await self._update_status(paper_id, "processing", workflow)
@@ -149,7 +149,7 @@ class PaperService:
         """
         metadata = await self._get_metadata(paper_id)
         if not metadata:
-            raise ValueError(f"论文不存在: {paper_id}")
+            raise ValueError(f"Paper not found: {paper_id}")
 
         return {
             "paper_id": paper_id,
@@ -160,6 +160,21 @@ class PaperService:
             "category": metadata.get("category"),
             "filename": metadata.get("filename"),
         }
+
+    # Alias methods for test compatibility
+    async def get_paper_status(self, paper_id: str) -> dict[str, Any] | None:
+        """获取论文处理状态（测试兼容方法）.
+
+        Args:
+            paper_id: 论文ID
+
+        Returns:
+            状态信息或None
+        """
+        try:
+            return await self.get_status(paper_id)
+        except ValueError:
+            return None
 
     async def get_content(self, paper_id: str, content_type: str) -> dict[str, Any]:
         """获取论文内容.
@@ -179,7 +194,7 @@ class PaperService:
             # 源文件（PDF）
             source_path = self._get_source_path(paper_id)
             if not source_path.exists():
-                raise ValueError(f"源文件不存在: {paper_id}")
+                raise ValueError(f"Source file not found: {paper_id}")
             return {
                 "paper_id": paper_id,
                 "content_type": "source",
@@ -195,11 +210,11 @@ class PaperService:
             elif content_type == "heartfelt":
                 content_dir = self.papers_dir / "heartfelt" / category
             else:
-                raise ValueError(f"不支持的内容类型: {content_type}")
+                raise ValueError(f"Unsupported content type: {content_type}")
 
             content_path = content_dir / f"{base_filename}.md"
             if not content_path.exists():
-                raise ValueError(f"{content_type}内容不存在: {paper_id}")
+                raise ValueError(f"{content_type} content not found: {paper_id}")
 
             with open(content_path, encoding="utf-8") as f:
                 content = f.read()
@@ -231,6 +246,16 @@ class PaperService:
         Returns:
             论文列表
         """
+        return await self._list_papers_internal(category, status, limit, offset)
+
+    async def _list_papers_internal(
+        self,
+        category: str | None = None,
+        status: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """内部方法：获取论文列表."""
         papers = []
         source_dir = self.papers_dir / "source"
 
@@ -276,7 +301,7 @@ class PaperService:
 
         return {"papers": papers, "total": total, "offset": offset, "limit": limit}
 
-    async def delete_paper(self, paper_id: str) -> dict[str, Any]:
+    async def delete_paper(self, paper_id: str) -> bool:
         """删除论文及其相关数据.
 
         Args:
@@ -285,6 +310,11 @@ class PaperService:
         Returns:
             删除结果
         """
+        # Check if paper exists
+        metadata = await self._get_metadata(paper_id)
+        if not metadata:
+            raise ValueError("Paper not found")
+
         try:
             # 获取分类
             category = await self._get_paper_category(paper_id)
@@ -320,7 +350,7 @@ class PaperService:
 
             logger.info(f"Paper deleted successfully: {paper_id}")
 
-            return {"paper_id": paper_id, "deleted": True}
+            return True
 
         except Exception as e:
             logger.error(f"Error deleting paper {paper_id}: {str(e)}")
@@ -346,7 +376,7 @@ class PaperService:
                 file_paths.append(str(source_path))
 
         if not file_paths:
-            raise ValueError("没有找到有效的论文文件")
+            raise ValueError("No valid paper files found")
 
         # 启动批处理
         result = await self.batch_agent.batch_process(
@@ -378,14 +408,75 @@ class PaperService:
         result = await self.heartfelt_agent.generate_reading_report(paper_id)
 
         if not result["success"]:
-            raise ValueError(result.get("error", "生成报告失败"))
+            raise ValueError(result.get("error", "Report generation failed"))
 
         return {"paper_id": paper_id, "report": result["data"]}
+
+    async def get_paper_content(self, paper_id: str, content_type: str) -> str | None:
+        """获取论文内容（测试兼容方法）.
+
+        Args:
+            paper_id: 论文ID
+            content_type: 内容类型
+
+        Returns:
+            内容字符串或None
+        """
+        try:
+            output_path = self._get_output_path(paper_id, content_type)
+            if output_path.exists():
+                with open(output_path, encoding="utf-8") as f:
+                    return f.read()
+            return None
+        except Exception:
+            return None
+
+    async def get_paper_info(self, paper_id: str) -> dict[str, Any] | None:
+        """获取论文完整信息（测试兼容方法）.
+
+        Args:
+            paper_id: 论文ID
+
+        Returns:
+            论文信息或None
+        """
+        metadata = await self._get_metadata(paper_id)
+        if not metadata:
+            return None
+
+        # Add source file size if available
+        source_path = self._get_source_path(paper_id)
+        if source_path.exists():
+            metadata["size"] = source_path.stat().st_size
+
+        return metadata
+
+    async def update_paper_metadata(
+        self, paper_id: str, updates: dict[str, Any]
+    ) -> bool:
+        """更新论文元数据（测试兼容方法）.
+
+        Args:
+            paper_id: 论文ID
+            updates: 更新的数据
+
+        Returns:
+            是否成功
+        """
+        try:
+            await self._update_metadata(paper_id, updates)
+            return True
+        except Exception:
+            return False
 
     # 私有辅助方法
 
     def _sanitize_filename(self, filename: str) -> str:
         """清理文件名."""
+        # 处理空文件名
+        if not filename:
+            return "unnamed"
+
         # 移除特殊字符，只保留字母、数字、下划线、连字符和点
         import re
 
@@ -481,3 +572,187 @@ class PaperService:
         # 这里可以实现任务记录保存逻辑
         # 例如保存到数据库或文件
         pass
+
+    # Alias method for backward compatibility
+    async def _load_metadata(self, paper_id: str) -> dict[str, Any] | None:
+        """加载元数据（别名方法）."""
+        return await self._get_metadata(paper_id)
+
+    async def _list_all_metadata(self) -> list[dict[str, Any]]:
+        """列出所有元数据文件."""
+        metadata_list = []
+        metadata_dir = self.papers_dir / ".metadata"
+
+        if not metadata_dir.exists():
+            return metadata_list
+
+        import json
+
+        for metadata_file in metadata_dir.glob("*.json"):
+            try:
+                with open(metadata_file, encoding="utf-8") as f:
+                    metadata = json.load(f)
+                    metadata_list.append(metadata)
+            except Exception as e:
+                logger.warning(f"Error loading metadata file {metadata_file}: {e}")
+
+        return metadata_list
+
+    def _get_metadata_path(self, paper_id: str) -> Path:
+        """获取元数据文件路径."""
+        return self.papers_dir / ".metadata" / f"{paper_id}.json"
+
+    def _get_output_path(self, paper_id: str, output_type: str = "extracted") -> Path:
+        """获取输出文件路径."""
+        # 从 paper_id 提取分类
+        if "_" in paper_id:
+            parts = paper_id.split("_")
+            # 找到时间戳后的文件名部分
+            if len(parts) >= 3:
+                # 第一个部分是category，第二个是timestamp，其余是filename
+                category = parts[0]
+                timestamp = parts[1]
+                filename = "_".join(parts[2:])
+            else:
+                category = "general"
+                filename = paper_id
+        else:
+            category = "general"
+            filename = paper_id
+
+        # 根据输出类型构建路径
+        if output_type == "extracted":
+            output_dir = self.papers_dir / "extracted" / category
+        elif output_type == "translation":
+            output_dir = self.papers_dir / "translation" / category
+        elif output_type == "heartfelt":
+            output_dir = self.papers_dir / "heartfelt" / category
+        else:
+            output_dir = self.papers_dir / output_type / category
+
+        return output_dir / f"{filename}.json"
+
+    async def translate_paper(self, paper_id: str) -> dict[str, Any]:
+        """翻译论文.
+
+        Args:
+            paper_id: 论文ID
+
+        Returns:
+            翻译任务结果
+        """
+        source_path = self._get_source_path(paper_id)
+        if not source_path.exists():
+            raise ValueError(f"Paper not found: {paper_id}")
+
+        # 更新状态
+        await self._update_status(paper_id, "processing", "translate")
+
+        try:
+            # 启动翻译工作流
+            result = await self.workflow_agent.process(
+                {
+                    "source_path": str(source_path),
+                    "workflow": "translate",
+                    "paper_id": paper_id,
+                }
+            )
+
+            if result["success"]:
+                await self._update_status(paper_id, "completed", "translate")
+                task_id = (
+                    f"translate_{paper_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                )
+                await self._create_task_record(paper_id, task_id, "translate", result)
+                return {
+                    "task_id": task_id,
+                    "paper_id": paper_id,
+                    "status": "completed",
+                    "result": result,
+                }
+            else:
+                await self._update_status(
+                    paper_id, "failed", "translate", result.get("error") or ""
+                )
+                raise ValueError(result.get("error", "Translation failed"))
+
+        except Exception as e:
+            await self._update_status(paper_id, "failed", "translate", str(e))
+            logger.error(f"Error translating paper {paper_id}: {str(e)}")
+            raise
+
+    async def analyze_paper(self, paper_id: str) -> dict[str, Any]:
+        """分析论文（深度阅读）.
+
+        Args:
+            paper_id: 论文ID
+
+        Returns:
+            分析任务结果
+        """
+        source_path = self._get_source_path(paper_id)
+        if not source_path.exists():
+            raise ValueError(f"Paper not found: {paper_id}")
+
+        # 更新状态
+        await self._update_status(paper_id, "processing", "heartfelt")
+
+        try:
+            # 启动深度分析工作流
+            result = await self.heartfelt_agent.analyze(paper_id)
+
+            if result.get("success", False):
+                await self._update_status(paper_id, "completed", "heartfelt")
+                analysis_id = (
+                    f"analysis_{paper_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                )
+                return {
+                    "analysis_id": analysis_id,
+                    "paper_id": paper_id,
+                    "status": "processing"
+                    if result.get("status") == "processing"
+                    else "completed",
+                    "result": result,
+                }
+            else:
+                await self._update_status(
+                    paper_id, "failed", "heartfelt", result.get("error") or ""
+                )
+                raise ValueError(result.get("error", "Analysis failed"))
+
+        except Exception as e:
+            await self._update_status(paper_id, "failed", "heartfelt", str(e))
+            logger.error(f"Error analyzing paper {paper_id}: {str(e)}")
+            raise
+
+    async def batch_translate(self, paper_ids: list[str]) -> dict[str, Any]:
+        """批量翻译论文.
+
+        Args:
+            paper_ids: 论文ID列表
+
+        Returns:
+            批量翻译结果
+        """
+        # 验证所有论文存在
+        valid_paper_ids = []
+        for paper_id in paper_ids:
+            source_path = self._get_source_path(paper_id)
+            if source_path.exists():
+                valid_paper_ids.append(paper_id)
+            else:
+                logger.warning(f"Paper not found for batch translation: {paper_id}")
+
+        if not valid_paper_ids:
+            raise ValueError("No valid paper files found")
+
+        # 启动批量翻译
+        result = await self.batch_agent.batch_translate(valid_paper_ids)
+
+        return {
+            "batch_id": f"batch_translate_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "total_requested": len(paper_ids),
+            "total_valid": len(valid_paper_ids),
+            "status": result.get("status", "processing"),
+            "result": result,
+        }
