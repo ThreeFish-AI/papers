@@ -11,6 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
     curl \
+    libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
@@ -19,6 +20,9 @@ COPY pyproject.toml ./
 # 安装 Python 依赖
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -e .
+
+# 复制配置文件
+COPY .env.example ./.env.example
 
 # 复制应用代码
 COPY agents/ ./agents/

@@ -27,7 +27,11 @@ papers/** filter=lfs diff=lfs merge=lfs -text
 *.mkv filter=lfs diff=lfs merge=lfs -text
 *.wmv filter=lfs diff=lfs merge=lfs -text
 
-# Large datasets - track with Git LFS
+# Large datasets - track with Git LFS (excluding configuration files)
 *.csv filter=lfs diff=lfs merge=lfs -text
-*.json filter=lfs diff=lfs merge=lfs -text
 *.xml filter=lfs diff=lfs merge=lfs -text
+
+# Exclude common configuration files from LFS
+package.json !filter !diff !merge text
+*.config.json !filter !diff !merge text
+tsconfig.json !filter !diff !merge text
