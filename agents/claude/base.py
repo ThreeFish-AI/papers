@@ -48,13 +48,19 @@ class BaseAgent(ABC):
             Skill 调用结果
         """
         try:
-            # 使用 Skill 调用
-            # from claude_agent_sdk.tools import Skill  # Module not found, using fallback
-            # For now, just return an error about missing module
-            raise ImportError("claude_agent_sdk module not found")
+            # First try to use the official SDK if available
+            try:
+                from claude_agent_sdk.tools import Skill
 
-            # result = await Skill(skill_name, params)
-            # return {"success": True, "data": result}
+                result = await Skill(skill_name, params)
+                return {"success": True, "data": result}
+            except ImportError:
+                # Fallback to our implementation
+                logger.info(f"Using fallback skill implementation for {skill_name}")
+                from .skills import SkillInvoker
+
+                invoker = SkillInvoker()
+                return await invoker.call_skill(skill_name, params)
         except Exception as e:
             logger.error(f"Error calling skill {skill_name}: {str(e)}")
             return {"success": False, "error": str(e)}
