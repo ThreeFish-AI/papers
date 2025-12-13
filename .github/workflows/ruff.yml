@@ -368,12 +368,11 @@ jobs:
             --label "auto-fix" \
             --limit 1 \
             --state open \
-            --json number,url \
-            --jq '.[0] || empty')
+            --json number,url)
 
           if [ -n "$PR_JSON" ]; then
-            echo "pr_number=$(echo "$PR_JSON" | jq -r '.number')" >> $GITHUB_OUTPUT
-            echo "pr_url=$(echo "$PR_JSON" | jq -r '.url')" >> $GITHUB_OUTPUT
+            echo "pr_number=$(echo "$PR_JSON" | jq -r '.[0].number')" >> $GITHUB_OUTPUT
+            echo "pr_url=$(echo "$PR_JSON" | jq -r '.[0].url')" >> $GITHUB_OUTPUT
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
