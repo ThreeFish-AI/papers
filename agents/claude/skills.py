@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class SkillInvoker:
     """Fallback skill implementation using available Python packages."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the skill invoker."""
         self.anthropic_client = None
         api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -119,7 +119,7 @@ class SkillInvoker:
             # Extract content using pdfplumber for better text extraction
             content_parts = []
             metadata = {}
-            assets = {"images": [], "tables": 0, "formulas": 0}
+            assets: dict[str, Any] = {"images": [], "tables": 0, "formulas": 0}
 
             with pdfplumber.open(file_path) as pdf:
                 # Extract metadata
@@ -135,10 +135,12 @@ class SkillInvoker:
 
                 # Get page range
                 page_range = params.get("page_range", [0, len(pdf.pages)])
-                start_page = max(0, page_range[0] if page_range else 0)
-                end_page = min(
-                    len(pdf.pages), page_range[1] + 1 if page_range else len(pdf.pages)
-                )
+                if page_range and len(page_range) >= 2:
+                    start_page = max(0, int(page_range[0]))
+                    end_page = min(len(pdf.pages), int(page_range[1]) + 1)
+                else:
+                    start_page = 0
+                    end_page = len(pdf.pages)
 
                 total_words = 0
                 for i, page in enumerate(pdf.pages[start_page:end_page]):
@@ -160,7 +162,17 @@ class SkillInvoker:
                             if table:
                                 assets["tables"] += 1
                                 # Convert table to markdown
-                                markdown_table = self._convert_table_to_markdown(table)
+                                # Filter out None values and ensure all cells are strings
+                                clean_table = [
+                                    [
+                                        str(cell) if cell is not None else ""
+                                        for cell in row
+                                    ]
+                                    for row in table
+                                ]
+                                markdown_table = self._convert_table_to_markdown(
+                                    clean_table
+                                )
                                 content_parts.append(f"\n\n{markdown_table}\n")
 
                 # Combine all content
@@ -186,10 +198,11 @@ class SkillInvoker:
                     "metadata": metadata,
                     "images": assets.get("images", []),
                     "tables": [
-                        f"Table {i + 1}" for i in range(assets.get("tables", 0))
+                        f"Table {i + 1}" for i in range(int(assets.get("tables", 0)))
                     ],
                     "formulas": [
-                        f"Formula {i + 1}" for i in range(assets.get("formulas", 0))
+                        f"Formula {i + 1}"
+                        for i in range(int(assets.get("formulas", 0)))
                     ],
                     "page_count": end_page - start_page,
                 },
@@ -245,12 +258,14 @@ class SkillInvoker:
                 script.decompose()
 
             # Extract title
-            title = soup.find("title")
-            title = title.get_text().strip() if title else ""
+            title_tag = soup.find("title")
+            title = title_tag.get_text().strip() if title_tag else ""
 
             # Extract meta description
-            description = soup.find("meta", attrs={"name": "description"})
-            description = description.get("content", "") if description else ""
+            description_meta = soup.find("meta", attrs={"name": "description"})
+            description = (
+                description_meta.get("content", "") if description_meta else ""
+            )
 
             # Extract main content
             # Try to find main content area
@@ -317,7 +332,7 @@ class SkillInvoker:
             links = []
             for link in soup.find_all("a", href=True):
                 href = link["href"]
-                if href.startswith("http"):
+                if isinstance(href, str) and href.startswith("http"):
                     links.append({"text": link.get_text().strip(), "url": href})
 
             full_content = "\n".join(content_parts)
@@ -405,7 +420,12 @@ Please provide only the translated content without any explanations."""
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            translated_content = response.content[0].text
+            # Extract text from response content
+            translated_content = ""
+            for block in response.content:
+                if hasattr(block, "text"):
+                    translated_content = block.text
+                    break
 
             return {
                 "success": True,
@@ -559,7 +579,12 @@ Focus on the emotional and human aspects of the content."""
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            analysis = response.content[0].text
+            # Extract text from response content
+            analysis = ""
+            for block in response.content:
+                if hasattr(block, "text"):
+                    analysis = block.text
+                    break
 
             return {
                 "success": True,
