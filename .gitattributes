@@ -4,12 +4,14 @@
 
 # All files in papers directory - track with Git LFS
 papers/** filter=lfs diff=lfs merge=lfs -text
+
 # Archives - track with Git LFS
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.tar.gz filter=lfs diff=lfs merge=lfs -text
 *.tar.bz2 filter=lfs diff=lfs merge=lfs -text
 *.rar filter=lfs diff=lfs merge=lfs -text
 *.7z filter=lfs diff=lfs merge=lfs -text
+
 # Large documents - track with Git LFS
 *.docx filter=lfs diff=lfs merge=lfs -text
 *.doc filter=lfs diff=lfs merge=lfs -text
@@ -17,14 +19,15 @@ papers/** filter=lfs diff=lfs merge=lfs -text
 *.ppt filter=lfs diff=lfs merge=lfs -text
 *.xlsx filter=lfs diff=lfs merge=lfs -text
 *.xls filter=lfs diff=lfs merge=lfs -text
+
 # Large media files - track with Git LFS
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.avi filter=lfs diff=lfs merge=lfs -text
 *.mov filter=lfs diff=lfs merge=lfs -text
 *.mkv filter=lfs diff=lfs merge=lfs -text
 *.wmv filter=lfs diff=lfs merge=lfs -text
+
 # Large datasets - track with Git LFS
 *.csv filter=lfs diff=lfs merge=lfs -text
 *.json filter=lfs diff=lfs merge=lfs -text
 *.xml filter=lfs diff=lfs merge=lfs -text
-*.jpeg filter=lfs diff=lfs merge=lfs -text
