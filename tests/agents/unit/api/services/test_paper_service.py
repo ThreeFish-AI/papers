@@ -669,3 +669,330 @@ class TestPaperService:
                 result = await paper_service.update_paper_metadata(paper_id, updates)
 
                 assert result is True
+
+    @pytest.mark.asyncio
+    async def test_translate_paper(self, paper_service, temp_dir):
+        """Test translating a paper."""
+        paper_id = "test_paper_123"
+
+        papers_dir = temp_dir / "papers"
+        source_path = papers_dir / "source/test/test_paper_123.pdf"
+
+        with patch.object(paper_service, "_get_source_path", return_value=source_path):
+            with patch.object(
+                paper_service, "_get_metadata", new_callable=AsyncMock
+            ) as mock_get_meta:
+                mock_get_meta.return_value = {
+                    "paper_id": paper_id,
+                    "status": "extracted",
+                    "workflows": {"extract": {"status": "completed"}},
+                }
+
+                with patch_file_operations():
+                    mock_file_manager.add_file(str(source_path), b"PDF content")
+
+                    # Mock workflow agent for translation
+                    paper_service.workflow_agent.process.return_value = {
+                        "success": True,
+                        "task_id": "translate_task_123",
+                        "result": {
+                            "translated_content": "Translated paper content",
+                            "target_language": "zh",
+                            "translation_stats": {
+                                "total_characters": 5000,
+                                "translated_characters": 4800,
+                            },
+                        },
+                    }
+
+                    result = await paper_service.translate_paper(paper_id)
+
+                    assert result["success"] is True
+                    assert result["task_id"] == "translate_task_123"
+                    assert "translated_content" in result["result"]
+                    paper_service.workflow_agent.process.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_translate_paper_not_extracted(self, paper_service):
+        """Test translating a paper that hasn't been extracted."""
+        paper_id = "test_paper_123"
+
+        with patch.object(
+            paper_service, "_get_metadata", new_callable=AsyncMock
+        ) as mock_get_meta:
+            mock_get_meta.return_value = {
+                "paper_id": paper_id,
+                "status": "uploaded",
+                "workflows": {},
+            }
+
+            with pytest.raises(
+                ValueError, match="Paper must be extracted before translation"
+            ):
+                await paper_service.translate_paper(paper_id)
+
+    @pytest.mark.asyncio
+    async def test_translate_paper_not_found(self, paper_service):
+        """Test translating a non-existent paper."""
+        paper_id = "nonexistent_paper"
+
+        with patch.object(
+            paper_service, "_get_metadata", new_callable=AsyncMock
+        ) as mock_get_meta:
+            mock_get_meta.return_value = None
+
+            with pytest.raises(ValueError, match="Paper not found"):
+                await paper_service.translate_paper(paper_id)
+
+    @pytest.mark.asyncio
+    async def test_translate_paper_with_options(self, paper_service, temp_dir):
+        """Test translating a paper with custom options."""
+        paper_id = "test_paper_123"
+        options = {
+            "target_language": "zh",
+            "preserve_format": True,
+            "translation_style": "academic",
+        }
+
+        papers_dir = temp_dir / "papers"
+        source_path = papers_dir / "source/test/test_paper_123.pdf"
+
+        with patch.object(paper_service, "_get_source_path", return_value=source_path):
+            with patch.object(
+                paper_service, "_get_metadata", new_callable=AsyncMock
+            ) as mock_get_meta:
+                mock_get_meta.return_value = {
+                    "paper_id": paper_id,
+                    "status": "extracted",
+                    "workflows": {"extract": {"status": "completed"}},
+                }
+
+                with patch_file_operations():
+                    mock_file_manager.add_file(str(source_path), b"PDF content")
+
+                    paper_service.workflow_agent.process.return_value = {
+                        "success": True,
+                        "task_id": "translate_task_456",
+                        "result": {"translated_content": "Academic translation"},
+                    }
+
+                    result = await paper_service.translate_paper(paper_id, options)
+
+                    assert result["success"] is True
+                    # Verify options were passed through
+                    call_args = paper_service.workflow_agent.process.call_args[0][0]
+                    assert call_args["options"] == options
+
+    @pytest.mark.asyncio
+    async def test_analyze_paper(self, paper_service, temp_dir):
+        """Test analyzing a paper."""
+        paper_id = "test_paper_123"
+
+        papers_dir = temp_dir / "papers"
+        source_path = papers_dir / "source/test/test_paper_123.pdf"
+
+        with patch.object(paper_service, "_get_source_path", return_value=source_path):
+            with patch.object(
+                paper_service, "_get_metadata", new_callable=AsyncMock
+            ) as mock_get_meta:
+                mock_get_meta.return_value = {
+                    "paper_id": paper_id,
+                    "status": "extracted",
+                    "workflows": {"extract": {"status": "completed"}},
+                }
+
+                with patch_file_operations():
+                    mock_file_manager.add_file(str(source_path), b"PDF content")
+
+                    # Mock heartfelt agent for analysis
+                    paper_service.heartfelt_agent.analyze.return_value = {
+                        "success": True,
+                        "analysis_id": "analysis_123",
+                        "result": {
+                            "summary": "Paper summary",
+                            "key_insights": ["Insight 1", "Insight 2"],
+                            "methodology": "Research methodology",
+                            "conclusions": "Research conclusions",
+                        },
+                    }
+
+                    result = await paper_service.analyze_paper(paper_id)
+
+                    assert result["success"] is True
+                    assert result["analysis_id"] == "analysis_123"
+                    assert "summary" in result["result"]
+                    assert "key_insights" in result["result"]
+                    paper_service.heartfelt_agent.analyze.assert_called_once_with(
+                        {"paper_id": paper_id, "source_path": str(source_path)}
+                    )
+
+    @pytest.mark.asyncio
+    async def test_analyze_paper_not_extracted(self, paper_service):
+        """Test analyzing a paper that hasn't been extracted."""
+        paper_id = "test_paper_123"
+
+        with patch.object(
+            paper_service, "_get_metadata", new_callable=AsyncMock
+        ) as mock_get_meta:
+            mock_get_meta.return_value = {
+                "paper_id": paper_id,
+                "status": "uploaded",
+                "workflows": {},
+            }
+
+            with pytest.raises(
+                ValueError, match="Paper must be extracted before analysis"
+            ):
+                await paper_service.analyze_paper(paper_id)
+
+    @pytest.mark.asyncio
+    async def test_analyze_paper_not_found(self, paper_service):
+        """Test analyzing a non-existent paper."""
+        paper_id = "nonexistent_paper"
+
+        with patch.object(
+            paper_service, "_get_metadata", new_callable=AsyncMock
+        ) as mock_get_meta:
+            mock_get_meta.return_value = None
+
+            with pytest.raises(ValueError, match="Paper not found"):
+                await paper_service.analyze_paper(paper_id)
+
+    @pytest.mark.asyncio
+    async def test_analyze_paper_with_type(self, paper_service, temp_dir):
+        """Test analyzing a paper with specific analysis type."""
+        paper_id = "test_paper_123"
+        analysis_type = "methodology"
+
+        papers_dir = temp_dir / "papers"
+        source_path = papers_dir / "source/test/test_paper_123.pdf"
+
+        with patch.object(paper_service, "_get_source_path", return_value=source_path):
+            with patch.object(
+                paper_service, "_get_metadata", new_callable=AsyncMock
+            ) as mock_get_meta:
+                mock_get_meta.return_value = {
+                    "paper_id": paper_id,
+                    "status": "extracted",
+                    "workflows": {"extract": {"status": "completed"}},
+                }
+
+                with patch_file_operations():
+                    mock_file_manager.add_file(str(source_path), b"PDF content")
+
+                    paper_service.heartfelt_agent.analyze.return_value = {
+                        "success": True,
+                        "analysis_id": "methodology_analysis_123",
+                        "result": {"methodology": "Detailed methodology analysis"},
+                    }
+
+                    result = await paper_service.analyze_paper(paper_id, analysis_type)
+
+                    assert result["success"] is True
+                    assert result["analysis_id"] == "methodology_analysis_123"
+                    # Verify analysis type was passed through
+                    call_args = paper_service.heartfelt_agent.analyze.call_args[0][0]
+                    assert call_args["analysis_type"] == analysis_type
+
+    @pytest.mark.asyncio
+    async def test_batch_translate_all_success(self, paper_service):
+        """Test batch translation with all papers successful."""
+        paper_ids = ["paper_1", "paper_2", "paper_3"]
+
+        # Mock translate_paper for each paper
+        async def mock_translate(paper_id, options=None):
+            return {
+                "success": True,
+                "task_id": f"task_{paper_id}",
+                "result": {"translated_content": f"Content for {paper_id}"},
+            }
+
+        with patch.object(paper_service, "translate_paper", side_effect=mock_translate):
+            result = await paper_service.batch_translate(paper_ids)
+
+            assert result["total_requested"] == 3
+            assert result["total_success"] == 3
+            assert result["total_failed"] == 0
+            assert len(result["results"]) == 3
+            assert all(r["success"] for r in result["results"])
+
+    @pytest.mark.asyncio
+    async def test_batch_translate_partial_failure(self, paper_service):
+        """Test batch translation with some failures."""
+        paper_ids = ["paper_1", "paper_2", "paper_3"]
+
+        # Mock translate_paper with mixed success/failure
+        async def mock_translate(paper_id, options=None):
+            if paper_id == "paper_2":
+                raise ValueError("Translation failed")
+            return {
+                "success": True,
+                "task_id": f"task_{paper_id}",
+                "result": {"translated_content": f"Content for {paper_id}"},
+            }
+
+        with patch.object(paper_service, "translate_paper", side_effect=mock_translate):
+            result = await paper_service.batch_translate(paper_ids)
+
+            assert result["total_requested"] == 3
+            assert result["total_success"] == 2
+            assert result["total_failed"] == 1
+            assert len(result["results"]) == 3
+            assert result["results"][0]["success"] is True
+            assert result["results"][1]["success"] is False
+            assert result["results"][2]["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_batch_translate_empty_list(self, paper_service):
+        """Test batch translation with empty paper list."""
+        result = await paper_service.batch_translate([])
+
+        assert result["total_requested"] == 0
+        assert result["total_success"] == 0
+        assert result["total_failed"] == 0
+        assert result["results"] == []
+
+    @pytest.mark.asyncio
+    async def test_batch_translate_with_options(self, paper_service):
+        """Test batch translation with custom options."""
+        paper_ids = ["paper_1", "paper_2"]
+        options = {"target_language": "zh", "preserve_format": True}
+
+        # Track calls to verify options are passed
+        calls = []
+
+        async def mock_translate(paper_id, opts=None):
+            calls.append((paper_id, opts))
+            return {"success": True, "task_id": f"task_{paper_id}"}
+
+        with patch.object(paper_service, "translate_paper", side_effect=mock_translate):
+            result = await paper_service.batch_translate(paper_ids, options)
+
+            assert result["total_success"] == 2
+            # Verify options were passed to each call
+            assert all(call[1] == options for call in calls)
+
+    @pytest.mark.asyncio
+    async def test_batch_translate_concurrent(self, paper_service):
+        """Test batch translation runs concurrently."""
+        import asyncio
+
+        paper_ids = ["paper_1", "paper_2", "paper_3"]
+
+        # Track execution order
+        execution_order = []
+
+        async def mock_translate(paper_id, options=None):
+            execution_order.append(paper_id)
+            # Add small delay to test concurrency
+            await asyncio.sleep(0.01)
+            return {"success": True, "task_id": f"task_{paper_id}"}
+
+        with patch.object(paper_service, "translate_paper", side_effect=mock_translate):
+            start_time = asyncio.get_event_loop().time()
+            result = await paper_service.batch_translate(paper_ids)
+            end_time = asyncio.get_event_loop().time()
+
+            # Should complete quickly due to concurrency
+            assert (end_time - start_time) < 0.05  # Much less than 3 * 0.01
+            assert result["total_success"] == 3

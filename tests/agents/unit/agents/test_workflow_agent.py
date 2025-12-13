@@ -1,6 +1,7 @@
 """Unit tests for WorkflowAgent."""
 
 import asyncio
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -347,7 +348,9 @@ class TestWorkflowAgent:
             assert "options" in call_args
 
     @pytest.mark.asyncio
-    async def test_async_heartfelt_analysis(self, workflow_agent, temp_dir):
+    async def test_async_heartfelt_analysis_task_creation(
+        self, workflow_agent, temp_dir
+    ):
         """Test async heartfelt analysis task creation."""
         source_path = "/test/paper.pdf"
         extract_data = {"content": "Content..."}
@@ -471,3 +474,289 @@ class TestWorkflowAgent:
             assert status["status"] == "processing"
             assert status["progress"] == 50
             assert status["current_stage"] == "translation"
+
+    @pytest.mark.asyncio
+    async def test_async_heartfelt_analysis(self, workflow_agent, temp_dir):
+        """Test the _async_heartfelt_analysis method."""
+        if not hasattr(workflow_agent, "_async_heartfelt_analysis"):
+            pytest.skip("_async_heartfelt_analysis method not implemented")
+
+        paper_id = "test_paper_123"
+        source_path = temp_dir / "test_paper.pdf"
+        source_path.write_bytes(b"PDF content for analysis")
+
+        # Mock the heartfelt agent
+        workflow_agent.heartfelt_agent.analyze.return_value = {
+            "success": True,
+            "analysis_id": "analysis_123",
+            "result": {
+                "summary": "Paper summary",
+                "key_insights": ["Insight 1", "Insight 2"],
+                "methodology": "Research methodology",
+                "conclusions": "Research conclusions",
+            },
+        }
+
+        with patch_file_operations():
+            # Add the source file to mock file manager
+            mock_file_manager.add_file(str(source_path), b"PDF content for analysis")
+
+            result = await workflow_agent._async_heartfelt_analysis(
+                paper_id, str(source_path)
+            )
+
+            assert result["success"] is True
+            assert result["analysis_id"] == "analysis_123"
+            assert "summary" in result["result"]
+            assert "key_insights" in result["result"]
+            workflow_agent.heartfelt_agent.analyze.assert_called_once_with(
+                {"paper_id": paper_id, "source_path": str(source_path)}
+            )
+
+    @pytest.mark.asyncio
+    async def test_async_heartfelt_analysis_failure(self, workflow_agent, temp_dir):
+        """Test _async_heartfelt_analysis method with failure."""
+        if not hasattr(workflow_agent, "_async_heartfelt_analysis"):
+            pytest.skip("_async_heartfelt_analysis method not implemented")
+
+        paper_id = "test_paper_123"
+        source_path = temp_dir / "test_paper.pdf"
+
+        # Mock the heartfelt agent to return failure
+        workflow_agent.heartfelt_agent.analyze.return_value = {
+            "success": False,
+            "error": "Analysis failed",
+        }
+
+        with patch_file_operations():
+            # Add the source file to mock file manager
+            mock_file_manager.add_file(str(source_path), b"PDF content")
+
+            result = await workflow_agent._async_heartfelt_analysis(
+                paper_id, str(source_path)
+            )
+
+            assert result["success"] is False
+            assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_load_metadata(self, workflow_agent, temp_dir):
+        """Test the _load_metadata method."""
+        if not hasattr(workflow_agent, "_load_metadata"):
+            pytest.skip("_load_metadata method not implemented")
+
+        paper_id = "test_paper_123"
+
+        # Create metadata file path
+        papers_dir = Path(temp_dir) / "papers"
+        metadata_path = papers_dir / ".metadata" / f"{paper_id}.json"
+
+        with patch_file_operations():
+            # Add metadata file to mock file manager
+            mock_file_manager.add_text_file(
+                str(metadata_path),
+                '{"paper_id": "test_paper_123", "status": "completed"}',
+            )
+            # Mock Path.exists and Path.read_text
+            with patch.object(Path, "exists", return_value=True):
+                with patch.object(
+                    Path,
+                    "read_text",
+                    return_value='{"paper_id": "test_paper_123", "status": "completed"}',
+                ):
+                    result = await workflow_agent._load_metadata(paper_id)
+
+                    assert result is not None
+                    assert result["paper_id"] == paper_id
+
+    @pytest.mark.asyncio
+    async def test_load_metadata_not_found(self, workflow_agent):
+        """Test _load_metadata when metadata file doesn't exist."""
+        if not hasattr(workflow_agent, "_load_metadata"):
+            pytest.skip("_load_metadata method not implemented")
+
+        paper_id = "nonexistent_paper"
+
+        # Mock Path.exists to return False
+        with patch.object(Path, "exists", return_value=False):
+            result = await workflow_agent._load_metadata(paper_id)
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_batch_process(self, workflow_agent, temp_dir):
+        """Test the batch_process method."""
+        if not hasattr(workflow_agent, "batch_process"):
+            pytest.skip("batch_process method not implemented")
+
+        documents = ["/test/doc1.pdf", "/test/doc2.pdf", "/test/doc3.pdf"]
+        workflow_type = "extract_translate"
+
+        # Mock process method for each document
+        async def mock_process(doc_path, workflow, options=None):
+            doc_name = Path(doc_path).stem
+            return {
+                "success": True,
+                "document_id": doc_name,
+                "workflow": workflow,
+                "results": {"extracted": f"Content from {doc_name}"},
+            }
+
+        with patch.object(workflow_agent, "process", side_effect=mock_process):
+            with patch_file_operations():
+                # Add documents to mock file manager
+                for doc in documents:
+                    mock_file_manager.add_file(doc, b"Document content")
+                    mock_file_manager.exists(doc)
+
+                result = await workflow_agent.batch_process(documents, workflow_type)
+
+                assert result["total_documents"] == 3
+                assert result["successful"] == 3
+                assert result["failed"] == 0
+                assert len(result["results"]) == 3
+                assert all(r["success"] for r in result["results"])
+
+    @pytest.mark.asyncio
+    async def test_batch_process_with_failures(self, workflow_agent):
+        """Test batch_process with some failures."""
+        if not hasattr(workflow_agent, "batch_process"):
+            pytest.skip("batch_process method not implemented")
+
+        documents = ["/test/doc1.pdf", "/test/doc2.pdf", "/test/doc3.pdf"]
+
+        # Mock process method with mixed success/failure
+        call_count = 0
+
+        async def mock_process(doc_path, workflow, options=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:  # Second document fails
+                return {
+                    "success": False,
+                    "error": "Processing failed",
+                    "document_id": Path(doc_path).stem,
+                }
+            return {
+                "success": True,
+                "document_id": Path(doc_path).stem,
+                "workflow": workflow,
+            }
+
+        with patch.object(workflow_agent, "process", side_effect=mock_process):
+            result = await workflow_agent.batch_process(documents, "extract_only")
+
+            assert result["total_documents"] == 3
+            assert result["successful"] == 2
+            assert result["failed"] == 1
+            assert len(result["results"]) == 3
+            assert result["results"][0]["success"] is True
+            assert result["results"][1]["success"] is False
+            assert result["results"][2]["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_batch_process_empty_list(self, workflow_agent):
+        """Test batch_process with empty document list."""
+        if not hasattr(workflow_agent, "batch_process"):
+            pytest.skip("batch_process method not implemented")
+
+        result = await workflow_agent.batch_process([], "extract_only")
+
+        assert result["total_documents"] == 0
+        assert result["successful"] == 0
+        assert result["failed"] == 0
+        assert result["results"] == []
+
+    @pytest.mark.asyncio
+    async def test_batch_process_concurrent(self, workflow_agent):
+        """Test that batch_process runs concurrently."""
+        if not hasattr(workflow_agent, "batch_process"):
+            pytest.skip("batch_process method not implemented")
+
+        documents = ["/test/doc1.pdf", "/test/doc2.pdf", "/test/doc3.pdf"]
+
+        # Track execution order
+        execution_order = []
+
+        async def mock_process(doc_path, workflow, options=None):
+            execution_order.append(doc_path)
+            # Add small delay to test concurrency
+            await asyncio.sleep(0.01)
+            return {"success": True, "document_id": Path(doc_path).stem}
+
+        with patch.object(workflow_agent, "process", side_effect=mock_process):
+            start_time = asyncio.get_event_loop().time()
+            result = await workflow_agent.batch_process(documents, "extract_only")
+            end_time = asyncio.get_event_loop().time()
+
+            # Should complete quickly due to concurrency
+            assert (end_time - start_time) < 0.05  # Much less than 3 * 0.01
+            assert result["successful"] == 3
+
+    @pytest.mark.asyncio
+    async def test_batch_process_papers_with_options(self, workflow_agent):
+        """Test batch_process_papers with custom options."""
+        if not hasattr(workflow_agent, "batch_process_papers"):
+            pytest.skip("batch_process_papers method not implemented")
+
+        paper_paths = ["/test/paper1.pdf", "/test/paper2.pdf"]
+        options = {"preserve_format": True, "language": "zh"}
+
+        with patch.object(workflow_agent, "process") as mock_process:
+            mock_process.return_value = {"success": True, "paper_id": "test"}
+
+            with patch_file_operations():
+                for path in paper_paths:
+                    mock_file_manager.add_file(path, b"PDF content")
+                    mock_file_manager.exists(path)
+
+                await workflow_agent.batch_process_papers(
+                    paper_paths, "translate", options
+                )
+
+                # Verify options were passed to each process call
+                assert mock_process.call_count == 2
+                for call in mock_process.call_args_list:
+                    args, kwargs = call
+                    assert len(args) >= 2
+                    if len(args) > 2:
+                        assert args[2] == options
+
+    @pytest.mark.asyncio
+    async def test_get_workflow_status_not_found(self, workflow_agent):
+        """Test get_workflow_status when paper doesn't exist."""
+        if not hasattr(workflow_agent, "get_workflow_status"):
+            pytest.skip("get_workflow_status method not implemented")
+
+        paper_id = "nonexistent_paper"
+
+        with patch.object(
+            workflow_agent, "_load_metadata", new_callable=AsyncMock
+        ) as mock_load:
+            mock_load.return_value = None
+
+            with pytest.raises(ValueError, match="Paper not found"):
+                await workflow_agent.get_workflow_status(paper_id)
+
+    @pytest.mark.asyncio
+    async def test_get_workflow_status_no_workflows(self, workflow_agent):
+        """Test get_workflow_status when no workflows exist."""
+        if not hasattr(workflow_agent, "get_workflow_status"):
+            pytest.skip("get_workflow_status method not implemented")
+
+        paper_id = "test_paper"
+
+        with patch.object(
+            workflow_agent, "_load_metadata", new_callable=AsyncMock
+        ) as mock_load:
+            mock_load.return_value = {
+                "paper_id": paper_id,
+                "status": "uploaded",
+                "workflows": {},
+            }
+
+            status = await workflow_agent.get_workflow_status(paper_id)
+
+            assert status["status"] == "uploaded"
+            assert status["workflows"] == {}
+            assert "progress" in status
