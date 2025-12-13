@@ -60,17 +60,22 @@ def run_unit_tests():
 
 
 def run_integration_tests():
-    """Run integration tests only."""
+    """Run integration tests with coverage."""
     return run_command(
         [
             sys.executable,
             "-m",
             "pytest",
-            "tests/agents/integration",
+            "tests/agents",
+            "--cov=agents",
+            "--cov-report=term-missing",
+            "--cov-report=html",
+            "--cov-report=xml",
+            "--cov-fail-under=80",
             "-v",
             "--tb=short",
         ],
-        "Integration Tests",
+        "Integration Tests with Coverage",
     )
 
 
