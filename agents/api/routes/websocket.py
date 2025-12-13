@@ -34,7 +34,7 @@ class ConnectionManager:
             websocket = self.active_connections[client_id]
             try:
                 await websocket.close()
-            except:
+            except Exception:
                 pass  # Ignore errors when closing
             del self.active_connections[client_id]
         if client_id in self.client_subscriptions:

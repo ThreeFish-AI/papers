@@ -595,7 +595,6 @@ class TestWorkflowAgent:
             pytest.skip("batch_process method not implemented")
 
         documents = ["/test/doc1.pdf", "/test/doc2.pdf", "/test/doc3.pdf"]
-        workflow_type = "extract_translate"
 
         # Mock process method for each document
         async def mock_process(doc_path, workflow, options=None):
