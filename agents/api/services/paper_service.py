@@ -656,7 +656,7 @@ class PaperService:
 
         try:
             # 启动翻译工作流
-            workflow_params = {
+            workflow_params: dict[str, Any] = {
                 "source_path": str(source_path),
                 "workflow": "translate",
                 "paper_id": paper_id,
@@ -796,7 +796,10 @@ class PaperService:
             }
 
         # 启动批量翻译
-        batch_params = {"files": valid_paper_ids, "workflow": "translation"}
+        batch_params: dict[str, Any] = {
+            "files": valid_paper_ids,
+            "workflow": "translation",
+        }
         if options:
             batch_params["options"] = options
 

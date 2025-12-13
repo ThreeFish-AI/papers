@@ -635,7 +635,7 @@ Focus on the emotional and human aspects of the content."""
             skill_params = {}
         else:
             # Original format: skill and skill_params
-            skill_name = params.get("skill")
+            skill_name = params.get("skill") or ""
             skill_params = params.get("skill_params", {})
 
         if not items:
