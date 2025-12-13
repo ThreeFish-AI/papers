@@ -63,6 +63,86 @@ EMAIL_FROM          # 邮件发送地址 (可选，默认为 github.actor)
    - `DOCKER_USERNAME`: 您的 Docker Hub 用户名
    - `DOCKER_PASSWORD`: 创建的访问令牌（非密码）
 
+## 邮件通知配置
+
+Ruff 自动修复工作流支持邮件通知功能，当检测到问题并创建 PR 时会自动发送通知。
+
+### 配置步骤
+
+1. **启用通知功能**
+
+   在 Repository Variables 中添加：
+
+   ```
+   Name: NOTIFICATION_ENABLED
+   Value: true
+   ```
+
+2. **配置接收邮箱**
+
+   在 Repository Variables 中添加：
+
+   ```
+   Name: EMAIL_NOTIFICATIONS
+   Value: user@example.com,admin@example.com  # 多个地址用逗号分隔
+   ```
+
+3. **配置 SMTP 服务（可选）**
+
+   默认使用 Gmail，如需自定义：
+
+   ```
+   SMTP_SERVER: smtp.gmail.com  # SMTP 服务器地址
+   SMTP_PORT: 587               # SMTP 端口
+   ```
+
+4. **配置发送账户**
+
+   在 Repository Secrets 中添加：
+
+   ```
+   EMAIL_USERNAME: your-smtp-username
+   EMAIL_PASSWORD: your-app-password  # Gmail 请使用应用专用密码
+   EMAIL_FROM: sender@example.com      # 可选，发件人地址
+   ```
+
+### Gmail 应用专用密码获取步骤
+
+1. **开启两步验证**
+
+   - 访问 [Google 账户安全设置](https://myaccount.google.com/security)
+   - 找到"登录 Google"部分
+   - 开启"两步验证"
+
+2. **生成应用专用密码**
+
+   - 直接访问：https://myaccount.google.com/apppasswords
+   - 选择应用：选择"其他（自定义名称）"
+   - 输入名称：如 `github-actions-ruff`
+   - 点击"生成"
+
+3. **复制密码**
+
+   - 系统显示 16 位密码（格式：xxxx xxxx xxxx xxxx）
+   - 立即复制保存，此密码只显示一次
+
+4. **配置到 GitHub Secrets**
+   ```
+   EMAIL_PASSWORD: xxxx xxxx xxxx xxxx  # 生成的密码（包含空格）
+   ```
+
+### 注意事项
+
+- 密码生成后只显示一次，建议保存在密码管理器中
+- 应用专用密码比主密码更安全
+- 可随时撤销不再使用的密码
+- 如果看不到应用专用密码选项，确认：
+  - 两步验证已开启
+  - 不是由管理员控制的 Google Workspace 账户
+  - 尝试更换浏览器或清除缓存
+
+配置完成后，邮件将包含修复状态、分支信息、PR 链接等详细信息。
+
 ## 环境变量
 
 工作流使用以下环境变量：
