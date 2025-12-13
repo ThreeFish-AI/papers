@@ -214,7 +214,7 @@ jobs:
           git checkout -b $BRANCH_NAME
 
           # Add and commit changes
-          git add agents/ tests/ conftest.py
+          git add .
           git commit -m "fix: auto-fix ruff issues
 
           - Applied ruff --fix to resolve linting issues
@@ -304,7 +304,7 @@ jobs:
 
           # Commit if there are new changes
           if [ -n "$(git status --porcelain)" ]; then
-            git add agents/ tests/ conftest.py
+            git add .
             git commit -m "fix: update ruff fixes for latest changes
 
               - Applied additional ruff fixes
