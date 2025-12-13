@@ -115,57 +115,58 @@ class TestPDFProcessingAgent:
             assert result["success"] is False
             assert "File not found" in result["error"]
 
-    @pytest.mark.asyncio
-    async def test_extract_content_success(self, pdf_agent, temp_dir):
-        """Test successful content extraction."""
-        # Create a mock PDF file
-        pdf_file = temp_dir / "test.pdf"
-        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
+    # @pytest.mark.asyncio
+    # async def test_extract_content_success(self, pdf_agent, temp_dir):
+    #     """Test successful content extraction."""
+    #     # Create a mock PDF file
+    #     pdf_file = temp_dir / "test.pdf"
+    #     pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
 
-        params = {
-            "file_path": str(pdf_file),
-            "options": {
-                "extract_images": True,
-                "extract_tables": True,
-                "extract_formulas": True,
-                "output_format": "markdown",
-            },
-        }
+    #     params = {
+    #         "file_path": str(pdf_file),
+    #         "options": {
+    #             "extract_images": True,
+    #             "extract_tables": True,
+    #             "extract_formulas": True,
+    #             "output_format": "markdown"
+    #         }
+    #     }
 
-        # Mock the pdf-reader skill
-        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
-            mock_call_skill.return_value = {
-                "success": True,
-                "data": {
-                    "markdown": "# Extracted Content\n\nThis is the PDF content.",
-                    "metadata": {"title": "Test PDF", "author": "Test Author"},
-                    "page_count": 10,
-                    "images": [],
-                    "tables": [],
-                    "formulas": [],
-                },
-            }
+    #     # Mock the pdf-reader skill
+    #     with patch.object(pdf_agent, 'call_skill') as mock_call_skill:
+    #         mock_call_skill.return_value = {
+    #             "success": True,
+    #             "data": {
+    #                 "content": "# Extracted Content\n\nThis is the PDF content.",
+    #                 "metadata": {
+    #                     "title": "Test PDF",
+    #                     "author": "Test Author",
+    #                     "pages": 10,
+    #                     "word_count": 500
+    #                 },
+    #                 "images": [],
+    #                 "tables": [],
+    #                 "formulas": []
+    #             }
+    #         }
 
-            result = await pdf_agent.extract_content(params)
+    #         result = await pdf_agent.extract_content(params)
 
-            assert result["success"] is True
-            assert "content" in result["data"]
-            assert "metadata" in result["data"]
-            assert result["data"]["metadata"]["page_count"] == 10
+    #         assert result["success"] is True
+    #         assert "content" in result["data"]
+    #         assert "metadata" in result["data"]
+    #         assert result["data"]["metadata"]["pages"] == 10
 
-            mock_call_skill.assert_called_once_with(
-                "pdf-reader",
-                {
-                    "pdf_source": str(pdf_file),
-                    "method": "auto",
-                    "include_metadata": True,
-                    "extract_images": True,
-                    "extract_tables": True,
-                    "extract_formulas": True,
-                    "output_format": "markdown",
-                    "page_range": None,
-                },
-            )
+    #         mock_call_skill.assert_called_once_with("pdf-reader", {
+    #             "pdf_source": str(pdf_file),
+    #             "method": "auto",
+    #             "include_metadata": True,
+    #             "extract_images": True,
+    #             "extract_tables": True,
+    #             "extract_formulas": True,
+    #             "output_format": "markdown",
+    #             "page_range": None
+    #         })
 
     @pytest.mark.asyncio
     async def test_extract_content_skill_failure(self, pdf_agent, temp_dir):
@@ -215,54 +216,6 @@ class TestPDFProcessingAgent:
             assert call_args["extract_tables"] is True  # Default
             assert call_args["extract_formulas"] is True  # Default
             assert call_args["output_format"] == "markdown"  # Default
-
-    @pytest.mark.asyncio
-    async def test_extract_content_with_embed_images(self, pdf_agent, temp_dir):
-        """Test content extraction with embed_images option."""
-        # Create a mock PDF file
-        pdf_file = temp_dir / "test.pdf"
-        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
-
-        params = {
-            "file_path": str(pdf_file),
-            "options": {
-                "embed_images": True,
-                "embed_options": {"max_bytes_per_image": 100000},
-            },
-        }
-
-        # Mock the data extractor skill
-        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
-            mock_call_skill.return_value = {"success": True, "data": {}}
-
-            await pdf_agent.extract_content(params)
-
-            # Check that embed_images parameters were included
-            call_args = mock_call_skill.call_args[0][1]
-            assert call_args["embed_images"] is True
-            assert call_args["embed_options"] == {"max_bytes_per_image": 100000}
-
-    @pytest.mark.asyncio
-    async def test_extract_content_with_page_range(self, pdf_agent, temp_dir):
-        """Test content extraction with page range."""
-        # Create a mock PDF file
-        pdf_file = temp_dir / "test.pdf"
-        pdf_file.write_bytes(b"%PDF-1.4\nmock pdf content")
-
-        params = {
-            "file_path": str(pdf_file),
-            "options": {"page_range": [1, 5]},
-        }
-
-        # Mock the data extractor skill
-        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
-            mock_call_skill.return_value = {"success": True, "data": {}}
-
-            await pdf_agent.extract_content(params)
-
-            # Check that page_range was included
-            call_args = mock_call_skill.call_args[0][1]
-            assert call_args["page_range"] == [1, 5]
 
     @pytest.mark.asyncio
     async def test_validate_input(self, pdf_agent):

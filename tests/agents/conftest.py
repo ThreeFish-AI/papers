@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -128,8 +128,7 @@ def test_client():
 @pytest_asyncio.fixture
 async def async_client():
     """Create an async test client for the FastAPI application."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
 
@@ -151,82 +150,6 @@ def mock_paper_service():
         service.analyze_paper = AsyncMock()
         mock.return_value = service
         yield service
-
-
-@pytest.fixture
-def mock_paper_service_instance():
-    """Create a mock PaperService instance for integration tests (no patching)."""
-    from unittest.mock import AsyncMock, MagicMock
-
-    service = MagicMock()
-    service.upload_paper = AsyncMock()
-    service.get_paper = AsyncMock()
-    service.process_paper = AsyncMock()
-    service.get_status = AsyncMock()
-    service.get_content = AsyncMock()
-    service.list_papers = AsyncMock()
-    service.delete_paper = AsyncMock()
-    service.batch_process_papers = AsyncMock()
-    service.get_paper_report = AsyncMock()
-    service.translate_paper = AsyncMock()
-    service.analyze_paper = AsyncMock()
-    service._get_metadata = AsyncMock()
-    service.heartfelt_agent = MagicMock()
-    service.heartfelt_agent.generate_reading_report = AsyncMock()
-
-    # Set default return values
-    service.upload_paper.return_value = {
-        "paper_id": "test_paper.pdf",
-        "filename": "test.pdf",
-        "category": "general",
-        "size": 1000,
-        "upload_time": "2024-01-15T14:30:22Z",
-    }
-
-    service.get_paper_status.return_value = {
-        "paper_id": "test_paper.pdf",
-        "status": "completed",
-        "workflows": {},
-    }
-
-    service.get_paper_content.return_value = {
-        "content": "Test content",
-        "content_type": "translation",
-    }
-
-    service.list_papers.return_value = {
-        "papers": [],
-        "total": 0,
-        "limit": 20,
-        "offset": 0,
-    }
-
-    service.delete_paper.return_value = True
-
-    service.batch_process_papers.return_value = {
-        "batch_id": "batch_123",
-        "total_requested": 0,
-        "total_files": 0,
-        "workflow": "translate",
-        "stats": {"processed": 0, "failed": 0},
-        "results": [],
-    }
-
-    service.get_paper_report.return_value = {
-        "summary": "Test summary",
-        "insights": [],
-        "recommendations": [],
-        "impact_score": 0.8,
-        "generated_at": "2024-01-15T14:30:22Z",
-    }
-
-    service._get_metadata.return_value = {
-        "paper_id": "test_paper",
-        "category": "general",
-        "status": "completed",
-    }
-
-    return service
 
 
 @pytest.fixture

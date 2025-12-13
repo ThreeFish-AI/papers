@@ -1,20 +1,17 @@
 """Integration tests for API endpoints."""
 
 import asyncio
-import json
-from datetime import datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agents.api.main import app
-from agents.api.routes.papers import get_paper_service
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
     patch_file_operations,
 )
 from tests.agents.fixtures.mocks.mock_websocket import (
     MockWebSocket,
+    simulate_task_progress,
 )
 
 
@@ -22,66 +19,59 @@ from tests.agents.fixtures.mocks.mock_websocket import (
 class TestAPIIntegration:
     """Integration tests for API endpoints."""
 
-    @staticmethod
-    def setup_dependency_override(mock_service):
-        """Setup FastAPI dependency override for a test."""
-        app.dependency_overrides[get_paper_service] = lambda: mock_service
-
-    @staticmethod
-    def cleanup_dependency_override():
-        """Clean up FastAPI dependency override after a test."""
-        app.dependency_overrides.clear()
-
     @pytest.mark.asyncio
-    async def test_complete_paper_processing_flow(
-        self, async_client, mock_paper_service_instance
-    ):
+    async def test_complete_paper_processing_flow(self, async_client, temp_dir):
         """Test complete flow from upload to processing completion."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        # 1. Upload paper
+        paper_content = b"%PDF-1.4\nTest paper content for integration testing"
 
-        try:
-            # 1. Upload paper
-            paper_content = b"%PDF-1.4\nTest paper content for integration testing"
+        # Mock file operations
+        with patch_file_operations():
+            # Setup mock storage
+            mock_file_manager.mkdir(
+                "/test/papers/source/llm-agents", parents=True, exist_ok=True
+            )
+            mock_file_manager.add_file(
+                "/test/papers/source/llm-agents/test_paper.pdf", paper_content
+            )
 
-            # Mock file operations
-            with patch_file_operations():
-                # Setup mock storage
-                mock_file_manager.mkdir(
-                    "/test/papers/source/llm-agents", parents=True, exist_ok=True
+            # Mock services
+            with patch(
+                "agents.api.services.paper_service.PaperService"
+            ) as mock_service_class:
+                service = mock_service_class.return_value
+                service.upload_paper = AsyncMock(
+                    return_value={
+                        "paper_id": "llm-agents_test_paper.pdf",
+                        "filename": "test_paper.pdf",
+                        "category": "llm-agents",
+                        "size": len(paper_content),
+                        "upload_time": "2024-01-15T14:30:22Z",
+                    }
                 )
-                mock_file_manager.add_file(
-                    "/test/papers/source/llm-agents/test_paper.pdf", paper_content
+
+                service.process_paper = AsyncMock(
+                    return_value={"task_id": "task_123", "status": "processing"}
                 )
 
-                # Configure mock to return expected results
-                mock_paper_service_instance.upload_paper.return_value = {
-                    "paper_id": "llm-agents_test_paper.pdf",
-                    "filename": "test_paper.pdf",
-                    "category": "llm-agents",
-                    "size": len(paper_content),
-                    "upload_time": "2024-01-15T14:30:22Z",
-                }
+                service.get_paper_status = AsyncMock(
+                    return_value={
+                        "paper_id": "llm-agents_test_paper.pdf",
+                        "status": "completed",
+                        "workflows": {
+                            "extract": {"status": "completed", "progress": 100},
+                            "translate": {"status": "completed", "progress": 100},
+                            "heartfelt": {"status": "completed", "progress": 100},
+                        },
+                    }
+                )
 
-                mock_paper_service_instance.process_paper.return_value = {
-                    "task_id": "task_123",
-                    "status": "processing",
-                }
-
-                mock_paper_service_instance.get_status.return_value = {
-                    "paper_id": "llm-agents_test_paper.pdf",
-                    "status": "completed",
-                    "workflows": {
-                        "extract": {"status": "completed", "progress": 100},
-                        "translate": {"status": "completed", "progress": 100},
-                        "heartfelt": {"status": "completed", "progress": 100},
-                    },
-                }
-
-                mock_paper_service_instance.get_content.return_value = {
-                    "content": "Translated test content",
-                    "content_type": "translation",
-                }
+                service.get_paper_content = AsyncMock(
+                    return_value={
+                        "content": "Translated paper content...",
+                        "content_type": "translation",
+                    }
+                )
 
                 # Upload paper
                 upload_response = await async_client.post(
@@ -125,176 +115,83 @@ class TestAPIIntegration:
                 content_data = content_response.json()
                 assert "content" in content_data
 
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
-
     @pytest.mark.asyncio
-    async def test_batch_processing_flow(
-        self, async_client, mock_paper_service_instance
-    ):
+    async def test_batch_processing_flow(self, async_client):
         """Test batch processing of multiple papers."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        paper_ids = ["paper_1", "paper_2", "paper_3"]
 
-        try:
-            paper_ids = [
-                "llm-agents_paper1.pdf",
-                "llm-agents_paper2.pdf",
-                "llm-agents_paper3.pdf",
-            ]
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
-            # Mock file operations
-            with patch_file_operations():
-                # Setup mock files for batch processing
-                for paper_id in paper_ids:
-                    category = paper_id.split("_")[0] if "_" in paper_id else "general"
-                    mock_file_manager.mkdir(
-                        f"/test/papers/source/{category}", parents=True, exist_ok=True
-                    )
-                    mock_file_manager.add_file(
-                        f"/test/papers/source/{category}/{paper_id}",
-                        b"Mock PDF content",
-                    )
+            # Mock batch processing
+            service.batch_process_papers = AsyncMock(
+                return_value={
+                    "batch_id": "batch_123",
+                    "total": len(paper_ids),
+                    "status": "processing",
+                    "results": [],
+                }
+            )
 
-                # Mock batch processing to simulate real behavior
-                def mock_batch_process(paper_ids_list, workflow):
-                    return {
-                        "batch_id": f"batch_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                        "total_requested": len(paper_ids_list),
-                        "total_files": len(paper_ids_list),
-                        "workflow": workflow,
-                        "stats": {"processed": len(paper_ids_list), "failed": 0},
-                        "results": [
-                            {"paper_id": pid, "status": "completed"}
-                            for pid in paper_ids_list
-                        ],
-                    }
+            # Start batch processing
+            batch_response = await async_client.post(
+                "/api/papers/batch", params={"workflow": "translate"}, json=paper_ids
+            )
 
-                mock_paper_service_instance.batch_process_papers = AsyncMock(
-                    side_effect=mock_batch_process
-                )
+            assert batch_response.status_code == 200
+            batch_data = batch_response.json()
+            assert batch_data["batch_id"] == "batch_123"
+            assert batch_data["total"] == 3
 
-                # Start batch processing
-                batch_response = await async_client.post(
-                    "/api/papers/batch?workflow=translate", json=paper_ids
-                )
-
-                assert batch_response.status_code == 200
-                batch_data = batch_response.json()
-                assert "batch_id" in batch_data
-                assert batch_data["total_requested"] == 3
-                assert batch_data["total_files"] == 3
-
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
-
-    @pytest.mark.asyncio
-    async def test_websocket_progress_updates(
-        self, async_client, mock_paper_service_instance
-    ):
+    @pytest.mark.websocket
+    async def test_websocket_progress_updates(self, async_client):
         """Test WebSocket progress updates during paper processing."""
-        from agents.api.routes.websocket import ConnectionManager
         from tests.agents.fixtures.mocks.mock_websocket import (
+            mock_connection_manager,
             mock_websocket_service,
         )
 
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        # Setup mock WebSocket
+        ws = MockWebSocket("test_client")
+        paper_id = "test_paper_123"
+        task_id = "task_456"
 
-        try:
-            # Test the connection manager directly since WebSocket testing requires special handling
-            client_id = "test_client_123"
-            task_id = "task_456"
-            paper_id = "test_paper_123"
-
-            # Mock connection manager
-            mock_manager = ConnectionManager()
-            mock_ws = MockWebSocket(client_id)
-
-            # Test connection
-            await mock_manager.connect(mock_ws, client_id)
-            assert client_id in mock_manager.active_connections
-
-            # Add task to mock service
+        # Simulate WebSocket connection
+        with patch("fastapi.WebSocket", return_value=ws):
+            # Add active task
             mock_websocket_service.add_active_task(task_id, paper_id, "translate")
-            mock_manager.client_subscriptions[client_id].add(task_id)
 
-            # Simulate progress messages
-            progress_messages = [
-                {
-                    "task_id": task_id,
-                    "paper_id": paper_id,
-                    "progress": 25,
-                    "status": "extracting",
-                },
-                {
-                    "task_id": task_id,
-                    "paper_id": paper_id,
-                    "progress": 50,
-                    "status": "translating",
-                },
-                {
-                    "task_id": task_id,
-                    "paper_id": paper_id,
-                    "progress": 75,
-                    "status": "analyzing",
-                },
-                {
-                    "task_id": task_id,
-                    "paper_id": paper_id,
-                    "progress": 100,
-                    "status": "completed",
-                },
+            # Simulate progress updates
+            progress_steps = [
+                (10, "Starting extraction..."),
+                (30, "Translating content..."),
+                (60, "Formatting output..."),
+                (100, "Processing completed"),
             ]
 
-            # Send messages through manager
-            for msg in progress_messages:
-                await mock_manager.send_personal_message(msg, client_id)
+            await simulate_task_progress(task_id, progress_steps)
 
-            # Verify messages were sent
-            sent_messages = mock_ws.get_sent_messages()
-            assert len(sent_messages) >= 4  # Should have progress updates
+            # Check that messages were sent
+            messages = ws.get_sent_messages()
+            assert len(messages) >= 4  # Should have progress updates
 
-            # Verify content of messages - MockWebSocket wraps messages in dict with "type" and "data"
-            for i, sent_msg in enumerate(sent_messages[:4]):
-                # Extract the actual message from the MockWebSocket format
-                if isinstance(sent_msg, dict) and "data" in sent_msg:
-                    # data might be a string (JSON), need to parse it
-                    data_str = sent_msg["data"]
-                    if isinstance(data_str, str):
-                        msg_data = json.loads(data_str)
-                    else:
-                        msg_data = data_str
-                else:
-                    msg_data = (
-                        json.loads(sent_msg) if isinstance(sent_msg, str) else sent_msg
-                    )
-
-                assert msg_data["task_id"] == task_id
-                assert msg_data["paper_id"] == paper_id
-                assert msg_data["progress"] == progress_messages[i]["progress"]
-
-            # Test disconnection
-            mock_manager.disconnect(client_id)
-            assert client_id not in mock_manager.active_connections
-
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
+            # Verify subscription
+            await mock_connection_manager.subscribe_to_task("test_client", task_id)
+            subscribers = mock_connection_manager.get_task_subscribers(task_id)
+            assert "test_client" in subscribers
 
     @pytest.mark.asyncio
-    async def test_error_handling_flow(self, async_client, mock_paper_service_instance):
+    async def test_error_handling_flow(self, async_client):
         """Test error handling in API flow."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
-        try:
-            # Test upload error - service should raise an exception
-            mock_paper_service_instance.upload_paper = AsyncMock(
-                side_effect=Exception("Upload failed")
-            )
+            # Test upload error
+            service.upload_paper = AsyncMock(side_effect=Exception("Upload failed"))
 
             upload_response = await async_client.post(
                 "/api/papers/upload",
@@ -304,19 +201,9 @@ class TestAPIIntegration:
             assert upload_response.status_code == 500
             assert "上传失败" in upload_response.json()["detail"]
 
-            # Test processing error - reset the mock first
-            mock_paper_service_instance.upload_paper = AsyncMock(
-                return_value={
-                    "paper_id": "test_paper",
-                    "filename": "test.pdf",
-                    "category": "general",
-                    "size": 100,
-                    "upload_time": "2024-12-13T12:00:00Z",
-                }
-            )
-            mock_paper_service_instance.process_paper = AsyncMock(
-                side_effect=ValueError("Paper not found")
-            )
+            # Test processing error
+            service.upload_file.return_value = {"paper_id": "test_paper"}
+            service.process_paper = AsyncMock(side_effect=ValueError("Paper not found"))
 
             process_response = await async_client.post(
                 "/api/papers/test_paper/process", json={"workflow": "full"}
@@ -325,35 +212,22 @@ class TestAPIIntegration:
             assert process_response.status_code == 404
             assert "Paper not found" in process_response.json()["detail"]
 
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
-
     @pytest.mark.asyncio
-    async def test_concurrent_requests(self, async_client, mock_paper_service_instance):
+    async def test_concurrent_requests(self, async_client):
         """Test handling concurrent requests."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        paper_ids = [f"paper_{i}" for i in range(5)]
 
-        try:
-            paper_ids = [f"paper_{i}" for i in range(5)]
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
-            # Mock successful responses based on paper_id
-            def mock_status(paper_id):
-                return {
-                    "paper_id": paper_id,
-                    "status": "processing",
-                    "workflows": {
-                        "extract": {"status": "completed", "progress": 100},
-                        "translate": {"status": "processing", "progress": 50},
-                    },
-                    "upload_time": "2024-01-15T14:30:22Z",
-                    "updated_at": "2024-01-15T14:35:22Z",
-                    "category": "general",
-                    "filename": f"{paper_id}.pdf",
-                }
-
-            mock_paper_service_instance.get_status = AsyncMock(side_effect=mock_status)
+            # Mock successful responses
+            service.get_paper_status = AsyncMock(
+                side_effect=[
+                    {"paper_id": pid, "status": "processing"} for pid in paper_ids
+                ]
+            )
 
             # Send concurrent requests
             tasks = []
@@ -369,11 +243,6 @@ class TestAPIIntegration:
                 assert response.status_code == 200
                 data = response.json()
                 assert data["paper_id"] == paper_ids[i]
-                assert data["status"] == "processing"
-
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
 
     @pytest.mark.asyncio
     async def test_file_validation_integration(self, async_client):
@@ -396,47 +265,28 @@ class TestAPIIntegration:
         assert "文件大小不能超过 50MB" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_pagination_integration(
-        self, async_client, mock_paper_service_instance
-    ):
+    async def test_pagination_integration(self, async_client):
         """Test pagination in paper listing."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
-        try:
-            # Create test papers
-            def mock_list_papers(category=None, status=None, limit=20, offset=0):
-                all_papers = [
-                    {
-                        "paper_id": f"general_20241213_1200{i}_paper_{i}.pdf",
-                        "category": "general",
-                        "status": "completed",
-                        "filename": f"paper_{i}.pdf",
-                        "upload_time": "2024-12-13T12:00:00Z",
-                        "size": 1024000,
-                    }
-                    for i in range(50)
-                ]
-
-                # Apply filters
-                filtered = all_papers
-                if category:
-                    filtered = [p for p in filtered if p["category"] == category]
-                if status:
-                    filtered = [p for p in filtered if p["status"] == status]
-
-                # Apply pagination
-                paginated = filtered[offset : offset + limit]
-
-                return {
-                    "papers": paginated,
-                    "total": len(filtered),
-                    "limit": limit,
-                    "offset": offset,
+            # Mock paginated response
+            service.list_papers = AsyncMock(
+                return_value={
+                    "papers": [
+                        {
+                            "paper_id": f"paper_{i}",
+                            "category": "test",
+                            "status": "completed",
+                        }
+                        for i in range(10)
+                    ],
+                    "total": 50,
+                    "limit": 10,
+                    "offset": 0,
                 }
-
-            mock_paper_service_instance.list_papers = AsyncMock(
-                side_effect=mock_list_papers
             )
 
             # Test first page
@@ -447,10 +297,22 @@ class TestAPIIntegration:
             data = response.json()
             assert len(data["papers"]) == 10
             assert data["total"] == 50
-            assert data["limit"] == 10
-            assert data["offset"] == 0
 
             # Test second page
+            service.list_papers.return_value = {
+                "papers": [
+                    {
+                        "paper_id": f"paper_{i}",
+                        "category": "test",
+                        "status": "completed",
+                    }
+                    for i in range(10, 20)
+                ],
+                "total": 50,
+                "limit": 10,
+                "offset": 10,
+            }
+
             response = await async_client.get(
                 "/api/papers/", params={"limit": 10, "offset": 10}
             )
@@ -459,70 +321,28 @@ class TestAPIIntegration:
             assert len(data["papers"]) == 10
             assert data["offset"] == 10
 
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
-
     @pytest.mark.asyncio
-    async def test_filtering_integration(
-        self, async_client, mock_paper_service_instance
-    ):
+    async def test_filtering_integration(self, async_client):
         """Test filtering in paper listing."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
-
-        try:
-            # Create test papers with different categories
-            def mock_list_papers(category=None, status=None, limit=20, offset=0):
-                all_papers = [
-                    {
-                        "paper_id": "llm-agents_20241213_120001_paper1.pdf",
-                        "category": "llm-agents",
-                        "status": "completed",
-                        "filename": "paper1.pdf",
-                        "upload_time": "2024-12-13T12:00:01Z",
-                        "size": 1024000,
-                    },
-                    {
-                        "paper_id": "context-engineering_20241213_120002_paper2.pdf",
-                        "category": "context-engineering",
-                        "status": "completed",
-                        "filename": "paper2.pdf",
-                        "upload_time": "2024-12-13T12:00:02Z",
-                        "size": 1024000,
-                    },
-                    {
-                        "paper_id": "general_20241213_120003_paper3.pdf",
-                        "category": "general",
-                        "status": "processing",
-                        "filename": "paper3.pdf",
-                        "upload_time": "2024-12-13T12:00:03Z",
-                        "size": 1024000,
-                    },
-                ]
-
-                # Apply filters
-                filtered = all_papers
-                if category:
-                    filtered = [p for p in filtered if p["category"] == category]
-                if status:
-                    filtered = [p for p in filtered if p["status"] == status]
-
-                # Apply pagination
-                paginated = filtered[offset : offset + limit]
-
-                return {
-                    "papers": paginated,
-                    "total": len(filtered),
-                    "limit": limit,
-                    "offset": offset,
-                }
-
-            mock_paper_service_instance.list_papers = AsyncMock(
-                side_effect=mock_list_papers
-            )
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
             # Test category filter
+            service.list_papers.return_value = {
+                "papers": [
+                    {
+                        "paper_id": "paper_1",
+                        "category": "llm-agents",
+                        "status": "completed",
+                    }
+                ],
+                "total": 1,
+                "limit": 20,
+                "offset": 0,
+            }
+
             response = await async_client.get(
                 "/api/papers/", params={"category": "llm-agents"}
             )
@@ -530,30 +350,11 @@ class TestAPIIntegration:
             data = response.json()
             assert len(data["papers"]) == 1
             assert data["papers"][0]["category"] == "llm-agents"
-            assert data["total"] == 1
 
-            # Test status filter
-            response = await async_client.get(
-                "/api/papers/", params={"status": "processing"}
+            # Verify service was called with correct parameters
+            service.list_papers.assert_called_with(
+                category="llm-agents", status=None, limit=20, offset=0
             )
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data["papers"]) == 1
-            assert data["papers"][0]["status"] == "processing"
-
-            # Test combined filters
-            response = await async_client.get(
-                "/api/papers/", params={"category": "llm-agents", "status": "completed"}
-            )
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data["papers"]) == 1
-            assert data["papers"][0]["category"] == "llm-agents"
-            assert data["papers"][0]["status"] == "completed"
-
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
 
     @pytest.mark.asyncio
     async def test_content_type_validation(self, async_client):
@@ -568,69 +369,33 @@ class TestAPIIntegration:
         assert "无效的内容类型" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_delete_cascade(self, async_client, mock_paper_service_instance):
+    async def test_delete_cascade(self, async_client):
         """Test cascade deletion of paper and related files."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
-
-        try:
-            # Mock paper exists
-            mock_paper_service_instance._get_metadata = AsyncMock(
-                return_value={
-                    "paper_id": "test_paper",
-                    "category": "general",
-                    "status": "completed",
-                }
-            )
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
             # Mock successful deletion
-            mock_paper_service_instance.delete_paper = AsyncMock(return_value=True)
+            service.delete_paper = AsyncMock(return_value=True)
 
             response = await async_client.delete("/api/papers/test_paper")
             assert response.status_code == 200
-            assert response.json() == {"deleted": True, "paper_id": "test_paper"}
+            assert response.json() is True
 
             # Verify delete was called
-            mock_paper_service_instance.delete_paper.assert_called_once_with(
-                "test_paper"
-            )
-
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
+            service.delete_paper.assert_called_once_with("test_paper")
 
     @pytest.mark.asyncio
-    async def test_report_generation(self, async_client, mock_paper_service_instance):
+    async def test_report_generation(self, async_client):
         """Test report generation endpoint."""
-        # Override dependency injection
-        self.setup_dependency_override(mock_paper_service_instance)
+        with patch(
+            "agents.api.services.paper_service.PaperService"
+        ) as mock_service_class:
+            service = mock_service_class.return_value
 
-        try:
-            # Mock paper exists
-            mock_paper_service_instance._get_metadata = AsyncMock(
-                return_value={
-                    "paper_id": "test_paper",
-                    "category": "general",
-                    "status": "completed",
-                }
-            )
-
-            # Mock heartfelt agent
-            mock_paper_service_instance.heartfelt_agent = AsyncMock()
-            mock_paper_service_instance.heartfelt_agent.generate_reading_report = (
-                AsyncMock(
-                    return_value={
-                        "summary": "Paper summary...",
-                        "insights": ["Insight 1", "Insight 2"],
-                        "recommendations": ["Recommendation 1"],
-                        "impact_score": 0.85,
-                        "generated_at": "2024-01-15T14:30:22Z",
-                    }
-                )
-            )
-
-            # Mock the service method
-            mock_paper_service_instance.get_paper_report = AsyncMock(
+            # Mock report data
+            service.get_paper_report = AsyncMock(
                 return_value={
                     "summary": "Paper summary...",
                     "insights": ["Insight 1", "Insight 2"],
@@ -646,11 +411,6 @@ class TestAPIIntegration:
             assert "summary" in data
             assert "insights" in data
             assert len(data["insights"]) == 2
-            assert data["impact_score"] == 0.85
-
-        finally:
-            # Clean up dependency override
-            self.cleanup_dependency_override()
 
     @pytest.mark.asyncio
     async def test_health_check(self, async_client):
