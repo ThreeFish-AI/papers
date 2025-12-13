@@ -440,7 +440,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "${{ env.EMOJI }} Ruff 自动修复通知 - ${{ env.TITLE }}"
           to: ${{ env.EMAIL_NOTIFICATIONS }}
-          from: GitHub Actions <${{ secrets.EMAIL_FROM || github.actor }}@users.noreply.github.com>
+          from: GitHub Actions <${{ secrets.EMAIL_FROM || env.EMAIL_USERNAME }}>
           # Convert markdown to HTML for email
           html_body: |
             <h2>${{ env.EMOJI }} ${{ env.TITLE }}</h2>
