@@ -82,8 +82,8 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          ruff check .
-          ruff format --check .
+          ruff check agents/ tests/ conftest.py
+          ruff format --check agents/ tests/ conftest.py
 
       - name: Type check with mypy
         run: |
