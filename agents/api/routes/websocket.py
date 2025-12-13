@@ -28,9 +28,14 @@ class ConnectionManager:
         self.client_subscriptions[client_id] = set()
         logger.info(f"WebSocket client connected: {client_id}")
 
-    def disconnect(self, client_id: str) -> None:
+    async def disconnect(self, client_id: str) -> None:
         """断开 WebSocket 连接."""
         if client_id in self.active_connections:
+            websocket = self.active_connections[client_id]
+            try:
+                await websocket.close()
+            except:
+                pass  # Ignore errors when closing
             del self.active_connections[client_id]
         if client_id in self.client_subscriptions:
             del self.client_subscriptions[client_id]
@@ -43,10 +48,10 @@ class ConnectionManager:
         if client_id in self.active_connections:
             websocket = self.active_connections[client_id]
             try:
-                await websocket.send_text(json.dumps(message))
+                await websocket.send_json(message)
             except Exception as e:
                 logger.error(f"Error sending message to {client_id}: {str(e)}")
-                self.disconnect(client_id)
+                await self.disconnect(client_id)
 
     async def broadcast_to_subscribers(
         self, message: dict[str, Any], task_id: str
@@ -65,8 +70,39 @@ class ConnectionManager:
     async def unsubscribe(self, client_id: str, task_id: str) -> None:
         """取消订阅任务更新."""
         if client_id in self.client_subscriptions:
-            self.client_subscriptions[client_id].discard(task_id)
-            logger.info(f"Client {client_id} unsubscribed from task {task_id}")
+            # If task_id is None, unsubscribe from all tasks
+            if task_id is None:
+                self.client_subscriptions[client_id].clear()
+            else:
+                self.client_subscriptions[client_id].discard(task_id)
+            logger.info(
+                f"Client {client_id} unsubscribed from task {task_id or 'all tasks'}"
+            )
+
+    def get_connection_count(self) -> int:
+        """获取当前连接数."""
+        return len(self.active_connections)
+
+    def get_subscriber_count(self, task_id: str) -> int:
+        """获取指定任务的订阅者数量."""
+        count = 0
+        for subscriptions in self.client_subscriptions.values():
+            if task_id in subscriptions:
+                count += 1
+        return count
+
+    async def cleanup_subscriptions(self) -> None:
+        """清理已断开连接的客户端的订阅."""
+        disconnected_clients = []
+        for client_id in self.client_subscriptions:
+            if client_id not in self.active_connections:
+                disconnected_clients.append(client_id)
+
+        for client_id in disconnected_clients:
+            del self.client_subscriptions[client_id]
+            logger.info(
+                f"Cleaned up subscriptions for disconnected client: {client_id}"
+            )
 
 
 manager = ConnectionManager()
@@ -121,10 +157,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str) -> None:
                 )
 
     except WebSocketDisconnect:
-        manager.disconnect(client_id)
+        await manager.disconnect(client_id)
     except Exception as e:
         logger.error(f"WebSocket error for {client_id}: {str(e)}")
-        manager.disconnect(client_id)
+        await manager.disconnect(client_id)
 
 
 # WebSocket 服务依赖

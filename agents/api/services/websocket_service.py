@@ -71,3 +71,19 @@ class WebSocketService:
         from ..routes.websocket import send_batch_progress
 
         await send_batch_progress(batch_id, total, processed, current_file or "")
+
+    async def send_paper_analysis(
+        self, paper_id: str, analysis_data: dict[str, Any]
+    ) -> None:
+        """发送论文分析结果.
+
+        Args:
+            paper_id: 论文ID
+            analysis_data: 分析数据
+        """
+        message = {
+            "type": "paper_analysis",
+            "paper_id": paper_id,
+            "analysis": analysis_data,
+        }
+        await self.manager.broadcast_to_subscribers(message, paper_id)
