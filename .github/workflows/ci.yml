@@ -177,9 +177,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push'
@@ -199,6 +204,15 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Show environment info
+        run: |
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Python version: ${{ env.PYTHON_VERSION }}"
+          echo "Available disk space:"
+          df -h
+          echo "Available memory:"
+          free -h
+
       - name: Build and test Docker image
         uses: docker/build-push-action@v5
         with:
@@ -211,6 +225,7 @@ jobs:
           cache-to: type=gha,mode=max
           secrets: |
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+        continue-on-error: false
 
       - name: Test Docker image
         run: |
@@ -226,17 +241,62 @@ jobs:
             test-image
 
           # Wait for container to start
+          echo "Waiting for container to start..."
           sleep 15
 
-          # Test health endpoint
-          timeout 30 bash -c 'until curl -f http://localhost:8000/health; do sleep 1; done'
+          # Check if container is running
+          if ! docker ps | grep test-container; then
+            echo "Container failed to start. Checking logs:"
+            docker logs test-container
+            exit 1
+          fi
 
-          # Check container logs
+          # Test health endpoint with more detailed logging
+          echo "Testing health endpoint..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/health; then
+              echo "Health check passed"
+              break
+            else
+              echo "Health check attempt $i failed, retrying..."
+              sleep 2
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Health check failed after 30 attempts"
+              docker logs test-container
+              exit 1
+            fi
+          done
+
+          # Check container logs for any errors
+          echo "Container logs:"
           docker logs test-container
 
           # Cleanup
-          docker stop test-container
-          docker rm test-container
+          docker stop test-container || true
+          docker rm test-container || true
+
+      - name: Debug Docker build if failed
+        if: failure()
+        run: |
+          echo "Docker build failed. Checking for issues..."
+
+          # Check Dockerfile syntax
+          docker --version
+          docker buildx version
+
+          # Try to build with debug output
+          docker build --progress=plain --no-cache -t debug-image . || true
+
+          # Show system resources
+          echo "Disk usage:"
+          df -h
+          echo "Memory usage:"
+          free -h
+
+          # List files to debug context issues
+          echo "Files in build context:"
+          find . -maxdepth 2 -type f | head -20
 
       - name: Build and push Docker image
         if: github.event_name == 'push'
