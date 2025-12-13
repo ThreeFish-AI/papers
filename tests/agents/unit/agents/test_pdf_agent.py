@@ -533,3 +533,68 @@ class TestPDFProcessingAgent:
         valid_pdf.write_bytes(b"%PDF-1.4\nmock pdf content")
         result = await pdf_agent.validate_pdf(str(valid_pdf))
         assert result["valid"] is True
+
+    @pytest.mark.asyncio
+    async def test_extract_content_exception_handling(self, pdf_agent):
+        """Test extract_content with exception handling."""
+        params = {"file_path": "/test/file.pdf"}
+
+        # Mock call_skill to raise an exception
+        with patch.object(pdf_agent, "call_skill") as mock_call_skill:
+            mock_call_skill.side_effect = Exception("Skill call failed")
+
+            result = await pdf_agent.extract_content(params)
+
+            assert result["success"] is False
+            assert result["error"] == "Skill call failed"
+
+    @pytest.mark.asyncio
+    async def test_batch_extract(self, pdf_agent):
+        """Test batch PDF extraction."""
+        file_paths = ["/test/file1.pdf", "/test/file2.pdf"]
+        options = {"extract_images": False, "output_format": "json"}
+
+        # Mock batch_call_skill
+        with patch.object(pdf_agent, "batch_call_skill") as mock_batch_call:
+            mock_batch_call.return_value = [
+                {"success": True, "data": {"content": "Content 1", "page_count": 5}},
+                {"success": False, "error": "Processing failed"},
+            ]
+
+            result = await pdf_agent.batch_extract(file_paths, options)
+
+            assert result["success"] is True
+            assert len(result["results"]) == 2
+            assert result["results"][0]["success"] is True
+            assert result["results"][1]["success"] is False
+
+            # Verify batch_call_skill was called with correct parameters
+            mock_batch_call.assert_called_once()
+            calls = mock_batch_call.call_args[0][0]
+            assert len(calls) == 2
+            assert calls[0]["skill"] == "pdf-reader"
+            assert calls[0]["params"]["pdf_source"] == "/test/file1.pdf"
+            assert calls[0]["params"]["extract_images"] is False
+            assert calls[0]["params"]["extract_tables"] is True
+            assert calls[0]["params"]["extract_formulas"] is True
+
+    @pytest.mark.asyncio
+    async def test_batch_extract_without_options(self, pdf_agent):
+        """Test batch PDF extraction without options."""
+        file_paths = ["/test/file1.pdf"]
+
+        # Mock batch_call_skill
+        with patch.object(pdf_agent, "batch_call_skill") as mock_batch_call:
+            mock_batch_call.return_value = [
+                {"success": True, "data": {"content": "Content 1", "page_count": 3}}
+            ]
+
+            result = await pdf_agent.batch_extract(file_paths)
+
+            assert result["success"] is True
+            assert len(result["results"]) == 1
+
+            # Verify default options are used
+            calls = mock_batch_call.call_args[0][0]
+            assert calls[0]["params"]["extract_images"] is True
+            assert calls[0]["params"]["extract_tables"] is True
