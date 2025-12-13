@@ -41,12 +41,27 @@
 ```
 ANTHROPIC_API_KEY    # API 认证密钥
 DOCKER_USERNAME      # Docker Hub 用户名
-DOCKER_PASSWORD      # Docker Hub 密码/token
+DOCKER_PASSWORD      # Docker Hub 访问令牌
 SLACK_WEBHOOK_URL    # Slack 通知 Webhook URL (可选)
 EMAIL_USERNAME       # 邮件通知用户名 (可选)
 EMAIL_PASSWORD       # 邮件通知密码 (可选)
 EMAIL_FROM          # 邮件发送地址 (可选，默认为 github.actor)
 ```
+
+### Docker Hub 访问令牌配置
+
+为了安全地推送 Docker 镜像，建议使用访问令牌而非密码：
+
+1. **创建访问令牌**：
+
+   - 登录 [Docker Hub](https://hub.docker.com/)
+   - 进入 Account Settings → Security
+   - 创建新令牌，命名为 `github-actions-ci`
+   - 权限：Read, Write, Delete
+
+2. **配置 GitHub Secrets**：
+   - `DOCKER_USERNAME`: 您的 Docker Hub 用户名
+   - `DOCKER_PASSWORD`: 创建的访问令牌（非密码）
 
 ## 环境变量
 
@@ -111,6 +126,7 @@ disallow_untyped_defs = false
 
 - **API Key 错误**: 检查仓库 secrets 配置
 - **Docker 构建失败**: 验证 Dockerfile 和 Hub 凭据
+- **Docker 认证失败**: 确认 DOCKER_USERNAME 和 DOCKER_PASSWORD 配置正确
 - **测试失败**: 查看日志，检查环境配置
 - **PR 创建失败**: 确认 GITHUB_TOKEN 权限
 - **通知失败**: 验证 Webhook URL 或 SMTP 配置
