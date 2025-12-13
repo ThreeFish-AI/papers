@@ -228,3 +228,325 @@ class TestWebSocketRoutes:
         from agents.api.routes.websocket import websocket_endpoint
 
         assert callable(websocket_endpoint)
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_connect(self):
+        """Test ConnectionManager connect method."""
+        manager = ConnectionManager()
+
+        # Mock WebSocket
+        mock_websocket = AsyncMock()
+        mock_websocket.accept = AsyncMock()
+
+        # Test connect
+        await manager.connect(mock_websocket, "client1")
+
+        assert "client1" in manager.active_connections
+        assert manager.active_connections["client1"] == mock_websocket
+        mock_websocket.accept.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_disconnect(self):
+        """Test ConnectionManager disconnect method."""
+        manager = ConnectionManager()
+
+        # Mock WebSocket
+        mock_websocket = AsyncMock()
+
+        # First connect
+        await manager.connect(mock_websocket, "client1")
+        assert "client1" in manager.active_connections
+
+        # Then disconnect
+        await manager.disconnect("client1")
+        assert "client1" not in manager.active_connections
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_send_personal_message(self):
+        """Test ConnectionManager send_personal_message method."""
+        manager = ConnectionManager()
+
+        # Mock WebSocket
+        mock_websocket = AsyncMock()
+        mock_websocket.send_json = AsyncMock()
+
+        # Connect client
+        await manager.connect(mock_websocket, "client1")
+
+        # Send message
+        message = {"type": "test", "data": "hello"}
+        await manager.send_personal_message(message, "client1")
+
+        mock_websocket.send_json.assert_called_once_with(message)
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_send_personal_message_not_connected(self):
+        """Test sending message to disconnected client."""
+        manager = ConnectionManager()
+
+        # Try to send message to non-existent client
+        message = {"type": "test", "data": "hello"}
+
+        # Should not raise error, just silently fail
+        await manager.send_personal_message(message, "non_existent")
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_broadcast_to_subscribers(self):
+        """Test ConnectionManager broadcast_to_subscribers method."""
+        manager = ConnectionManager()
+
+        # Mock WebSockets
+        mock_ws1 = AsyncMock()
+        mock_ws1.send_json = AsyncMock()
+        mock_ws2 = AsyncMock()
+        mock_ws2.send_json = AsyncMock()
+        mock_ws3 = AsyncMock()
+        mock_ws3.send_json = AsyncMock()
+
+        # Connect clients
+        await manager.connect(mock_ws1, "client1")
+        await manager.connect(mock_ws2, "client2")
+        await manager.connect(mock_ws3, "client3")
+
+        # Subscribe clients to different tasks
+        await manager.subscribe("client1", "task1")
+        await manager.subscribe("client2", "task1")
+        await manager.subscribe("client3", "task2")
+
+        # Broadcast to task1 subscribers
+        message = {"type": "update", "task_id": "task1", "status": "processing"}
+        await manager.broadcast_to_subscribers(message, "task1")
+
+        # Verify only task1 subscribers received the message
+        mock_ws1.send_json.assert_called_once_with(message)
+        mock_ws2.send_json.assert_called_once_with(message)
+        mock_ws3.send_json.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_subscribe(self):
+        """Test ConnectionManager subscribe method."""
+        manager = ConnectionManager()
+
+        # Initialize client_subscriptions if needed
+        if "client1" not in manager.client_subscriptions:
+            manager.client_subscriptions["client1"] = set()
+
+        # Subscribe to task
+        await manager.subscribe("client1", "task1")
+
+        assert "task1" in manager.client_subscriptions["client1"]
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_unsubscribe(self):
+        """Test ConnectionManager unsubscribe method."""
+        manager = ConnectionManager()
+
+        # Initialize client_subscriptions
+        manager.client_subscriptions["client1"] = {"task1", "task2"}
+
+        # Unsubscribe from one task
+        await manager.unsubscribe("client1", "task1")
+
+        assert "task1" not in manager.client_subscriptions["client1"]
+        assert "task2" in manager.client_subscriptions["client1"]
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_unsubscribe_all(self):
+        """Test ConnectionManager unsubscribe from all tasks."""
+        manager = ConnectionManager()
+
+        # Initialize client_subscriptions
+        manager.client_subscriptions["client1"] = {"task1", "task2", "task3"}
+
+        # Unsubscribe from all
+        await manager.unsubscribe("client1", None)
+
+        assert manager.client_subscriptions["client1"] == set()
+
+    @pytest.mark.asyncio
+    async def test_websocket_service_send_task_update(self):
+        """Test WebSocketService send_task_update method."""
+        mock_manager = AsyncMock()
+        mock_manager.broadcast_to_subscribers = AsyncMock()
+
+        service = WebSocketService(mock_manager)
+
+        # Send task update
+        await service.send_task_update(
+            "task123", {"status": "processing", "progress": 50}
+        )
+
+        mock_manager.broadcast_to_subscribers.assert_called_once_with(
+            {
+                "type": "task_update",
+                "task_id": "task123",
+                "status": "processing",
+                "progress": 50,
+            },
+            "task123",
+        )
+
+    @pytest.mark.asyncio
+    async def test_websocket_service_send_task_completion(self):
+        """Test WebSocketService send_task_completion method."""
+        mock_manager = AsyncMock()
+        mock_manager.broadcast_to_subscribers = AsyncMock()
+
+        service = WebSocketService(mock_manager)
+
+        # Send task completion
+        await service.send_task_completion(
+            "task123", {"result": "success", "output": "processed"}
+        )
+
+        mock_manager.broadcast_to_subscribers.assert_called_once_with(
+            {
+                "type": "task_completed",
+                "task_id": "task123",
+                "result": "success",
+                "output": "processed",
+            },
+            "task123",
+        )
+
+    @pytest.mark.asyncio
+    async def test_websocket_service_send_batch_progress(self):
+        """Test WebSocketService send_batch_progress method."""
+        mock_manager = AsyncMock()
+        mock_manager.broadcast_to_subscribers = AsyncMock()
+
+        service = WebSocketService(mock_manager)
+
+        # Send batch progress
+        await service.send_batch_progress(
+            "batch123", {"completed": 5, "total": 10, "current": "paper5"}
+        )
+
+        mock_manager.broadcast_to_subscribers.assert_called_once_with(
+            {
+                "type": "batch_progress",
+                "batch_id": "batch123",
+                "completed": 5,
+                "total": 10,
+                "current": "paper5",
+            },
+            "batch123",
+        )
+
+    @pytest.mark.asyncio
+    async def test_websocket_service_send_error(self):
+        """Test WebSocketService error sending."""
+        mock_manager = AsyncMock()
+        mock_manager.broadcast_to_subscribers = AsyncMock(
+            side_effect=Exception("Connection error")
+        )
+
+        service = WebSocketService(mock_manager)
+
+        # Should not raise exception
+        await service.send_task_update("task123", {"status": "error"})
+
+        # Error should be logged but not raised
+
+    @pytest.mark.asyncio
+    async def test_websocket_service_send_paper_analysis(self):
+        """Test WebSocketService send_paper_analysis method."""
+        mock_manager = AsyncMock()
+        mock_manager.broadcast_to_subscribers = AsyncMock()
+
+        service = WebSocketService(mock_manager)
+
+        # Send paper analysis
+        await service.send_paper_analysis(
+            "paper123", {"summary": "Test summary", "insights": []}
+        )
+
+        mock_manager.broadcast_to_subscribers.assert_called_once_with(
+            {
+                "type": "paper_analysis",
+                "paper_id": "paper123",
+                "summary": "Test summary",
+                "insights": [],
+            },
+            "paper123",
+        )
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_get_connection_count(self):
+        """Test ConnectionManager get_connection_count method."""
+        manager = ConnectionManager()
+
+        # Initially no connections
+        assert manager.get_connection_count() == 0
+
+        # Mock WebSockets
+        mock_ws1 = AsyncMock()
+        mock_ws2 = AsyncMock()
+
+        # Add connections
+        await manager.connect(mock_ws1, "client1")
+        await manager.connect(mock_ws2, "client2")
+
+        # Check count
+        assert manager.get_connection_count() == 2
+
+        # Remove one connection
+        await manager.disconnect("client1")
+
+        # Check count again
+        assert manager.get_connection_count() == 1
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_get_subscriber_count(self):
+        """Test ConnectionManager get_subscriber_count method."""
+        manager = ConnectionManager()
+
+        # Initially no subscribers
+        assert manager.get_subscriber_count("task1") == 0
+
+        # Mock WebSockets
+        mock_ws1 = AsyncMock()
+        mock_ws2 = AsyncMock()
+        mock_ws3 = AsyncMock()
+
+        # Connect clients
+        await manager.connect(mock_ws1, "client1")
+        await manager.connect(mock_ws2, "client2")
+        await manager.connect(mock_ws3, "client3")
+
+        # Subscribe clients to task
+        await manager.subscribe("client1", "task1")
+        await manager.subscribe("client2", "task1")
+        await manager.subscribe("client3", "task2")
+
+        # Check subscriber count for task1
+        assert manager.get_subscriber_count("task1") == 2
+        assert manager.get_subscriber_count("task2") == 1
+        assert manager.get_subscriber_count("task3") == 0
+
+    @pytest.mark.asyncio
+    async def test_connection_manager_cleanup_subscriptions(self):
+        """Test ConnectionManager cleanup_subscriptions method."""
+        manager = ConnectionManager()
+
+        # Setup subscriptions
+        manager.client_subscriptions = {
+            "client1": {"task1", "task2"},
+            "client2": {"task1", "task3"},
+            "client3": {"task2"},
+        }
+
+        # Mock WebSockets
+        mock_ws1 = AsyncMock()
+        mock_ws2 = AsyncMock()
+
+        # Connect only client1 and client2
+        manager.active_connections = {"client1": mock_ws1, "client2": mock_ws2}
+
+        # Cleanup subscriptions for disconnected clients
+        await manager.cleanup_subscriptions()
+
+        # client3's subscriptions should be removed
+        assert "client3" not in manager.client_subscriptions
+        assert "client1" in manager.client_subscriptions
+        assert "client2" in manager.client_subscriptions

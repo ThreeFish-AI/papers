@@ -104,8 +104,9 @@ class TestBaseAgent:
         with patch("agents.claude.base.logger"):
             result = await agent.call_skill("test_skill", {"param": "value"})
 
+            # Now it should fail with unknown skill error instead of module not found
             assert result["success"] is False
-            assert "claude_agent_sdk module not found" in result["error"]
+            assert "Unknown skill: test_skill" in result["error"]
 
     @pytest.mark.asyncio
     async def test_call_skill_with_exception(self):
