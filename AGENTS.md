@@ -21,4 +21,9 @@ This is a research repository focused on AI Agents papers, containing translated
 
 ## 常用导航
 
-（WIP）
+- [🗺️ Main Roadmap](docs/000-planning.md) - 项目整体路线图
+- [📖 系统架构](docs/001-framework.md) - 架构设计和技术栈
+- [💻 开发指南](docs/002-development.md) - 开发环境和代码规范
+- [👥 用户手册](docs/003-user-guide.md) - 安装部署和使用教程
+- [🧪 测试方案](docs/004-testing.md) - 测试框架和 CI/CD
+- [🚀 GitHub Actions](docs/005-github-actions.md) - 自动化工作流
